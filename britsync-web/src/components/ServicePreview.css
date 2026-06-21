@@ -1,0 +1,178 @@
+/* Services preview row background section */
+.service-preview-section {
+    padding: 6rem 0;
+    background-color: #030408; /* Dark Obsidian consistency */
+    position: relative;
+    z-index: 10;
+    box-sizing: border-box;
+}
+
+/* Bounds */
+.preview-container {
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    box-sizing: border-box;
+}
+
+/* Header */
+.preview-header {
+    text-align: center;
+    margin-bottom: 4rem;
+}
+
+.preview-subtitle {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #8b5cf6; /* Futuristic purple */
+    letter-spacing: 0.25rem;
+}
+
+.preview-title {
+    font-size: clamp(1.75rem, 5vw, 2.5rem);
+    font-weight: 900;
+    color: #ffffff;
+    margin-top: 0.5rem;
+    letter-spacing: -0.01em;
+}
+
+/* 5 Column Grid for capabilities */
+.preview-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+    .preview-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .preview-grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 1.25rem;
+    }
+}
+
+/* Capabilities Card Glassmorphism */
+.svc-card {
+    border-radius: 16px;
+    padding: 2rem 1.5rem;
+    box-sizing: border-box;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    display: flex;
+    flex-direction: column;
+}
+
+.svc-card.glass {
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+/* Hover Glowing borders */
+.svc-card:hover {
+    border-color: rgba(0, 191, 255, 0.25);
+    background: rgba(255, 255, 255, 0.03);
+    box-shadow: 0 15px 40px rgba(0, 191, 255, 0.07);
+}
+
+.svc-link-wrapper {
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Icon box */
+.svc-icon-box {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: rgba(0, 191, 255, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.svc-icon {
+    width: 24px;
+    height: 24px;
+    color: #00bfff;
+    position: relative;
+    z-index: 5;
+}
+
+.icon-glow {
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    background: radial-gradient(circle, rgba(0, 191, 255, 0.4) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.svc-card:hover .icon-glow {
+    opacity: 1;
+}
+
+/* Texts */
+.svc-card-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 0.75rem 0;
+    letter-spacing: -0.01em;
+}
+
+.svc-card-desc {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+    line-height: 1.6;
+    margin: 0 0 2rem 0;
+    flex-grow: 1;
+}
+
+/* Learn more navigation tag */
+.svc-learn-more {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.65rem;
+    font-weight: bold;
+    color: #00bfff;
+    letter-spacing: 0.1em;
+    transition: all 0.3s ease;
+    margin-top: auto;
+}
+
+.arrow-icon {
+    width: 14px;
+    height: 14px;
+    transition: transform 0.3s ease;
+}
+
+.svc-card:hover .svc-learn-more {
+    color: #8b5cf6; /* Transition to purple */
+}
+
+.svc-card:hover .arrow-icon {
+    transform: translateX(5px);
+}
+
+/* Mobile responsive padding adjustments */
+@media (max-width: 640px) {
+    .service-preview-section {
+        padding: 4rem 0;
+    }
+    .preview-header {
+        margin-bottom: 2.5rem;
+    }
+}

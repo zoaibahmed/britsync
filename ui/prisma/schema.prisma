@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Subscriber {
+  id          String   @id @default(cuid())
+  name        String
+  email       String   @unique
+  interests   String   // Stored as comma-separated values
+  subscribedAt DateTime @default(now())
+}
+
+model Article {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  content     String   // HTML or JSON content from Tiptap
+  section     String   // AI, LIFESTYLE, WORLD_NEWS
+  isPremium   Boolean  @default(false)
+  thumbnail   String?
+  videoUrl    String?
+  editorsNote String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Admin {
+  id       String @id @default(cuid())
+  email    String @unique
+  password String
+}
+
+model User {
+  id            String         @id @default(cuid())
+  name          String?
+  email         String         @unique
+  password      String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  section   String   // "ALL", "AI", "LIFESTYLE", "WORLD_NEWS"
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  expiresAt DateTime?
+
+  @@unique([userId, section])
+}
+
+model SiteSetting {
+  id            String   @id @default("global")
+  breakingNews  String   @default("Welcome to The Zyphra - Stay tuned for breaking news.")
+  updatedAt     DateTime @updatedAt
+}

@@ -1,0 +1,382 @@
+.process-section {
+    padding: 8rem 2rem;
+    background: var(--bg-primary);
+    overflow: hidden;
+    position: relative;
+    z-index: 10;
+}
+
+:root.light .process-section {
+    background-color: #f7f9fc;
+    background-image:
+        radial-gradient(at 0% 0%, rgba(0, 123, 255, 0.03) 0, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(0, 123, 255, 0.02) 0, transparent 50%);
+}
+
+:root.light .process-left h2 {
+    color: #1a1a1a;
+}
+
+:root.light .step-orb-node .orb-inner {
+    background: #ffffff;
+    border-color: rgba(0, 123, 255, 0.2);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+:root.light .step-item-3d:hover .orb-inner {
+    background: var(--color-blue);
+    box-shadow: 0 0 20px rgba(0, 191, 255, 0.3);
+}
+
+:root.light .step-card-3d {
+    background: linear-gradient(135deg, #ffffff 0%, #f9fbff 100%);
+    border-color: rgba(0, 0, 0, 0.06);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+
+:root.light .step-title-3d {
+    color: #1a1a1a;
+}
+
+:root.light .step-item-3d:hover .step-card-3d {
+    background: #ffffff;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+    border-color: var(--color-blue);
+}
+
+:root.light .step-number {
+    color: rgba(0, 123, 255, 0.08);
+}
+
+.process-bg-blob {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    filter: blur(120px);
+    z-index: 0;
+    opacity: 0.15;
+    animation: blobFloat 20s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.blob-1 {
+    top: -200px;
+    left: -200px;
+    background: var(--color-blue);
+    animation-delay: 0s;
+}
+
+.blob-2 {
+    bottom: -200px;
+    right: -200px;
+    background: #8e2de2;
+    animation-delay: -10s;
+}
+
+:root.light .process-bg-blob {
+    opacity: 0.08;
+    filter: blur(100px);
+}
+
+@keyframes blobFloat {
+    0% {
+        transform: translate(0, 0) scale(1);
+    }
+
+    100% {
+        transform: translate(50px, 50px) scale(1.1);
+    }
+}
+
+.process-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    /* Reduced gap since timeline consumes space */
+    align-items: flex-start;
+    position: relative;
+    z-index: 1;
+}
+
+/* =========================================
+   LEFT COLUMN - Info & CTA
+   ========================================= */
+.process-left {
+    position: sticky;
+    top: 200px;
+    padding-right: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.process-label {
+    font-size: 0.9rem;
+    color: var(--color-blue);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    display: inline-block;
+}
+
+.process-description {
+    font-size: 1.25rem;
+    line-height: 1.7;
+    color: var(--text-muted);
+    max-width: 450px;
+    margin-top: 1rem;
+    margin-bottom: 2.5rem;
+}
+
+:root.light .process-description {
+    color: #555;
+}
+
+.process-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8rem;
+    background: var(--color-blue);
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 20px rgba(0, 191, 255, 0.3);
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.process-cta-btn:hover {
+    background: #0099cc;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0, 191, 255, 0.5);
+}
+
+/* =========================================
+   3D HOLOGRAPHIC TIMELINE
+   ========================================= */
+.process-right-3d {
+    position: relative;
+    perspective: 1200px;
+}
+
+.perspective-container {
+    position: relative;
+    transform: rotateY(-10deg);
+    transform-style: preserve-3d;
+}
+
+.timeline-3d-path {
+    position: absolute;
+    left: 45px;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: rgba(0, 191, 255, 0.05);
+    border-radius: 2px;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.path-glow-animation {
+    position: absolute;
+    top: -100px;
+    left: 0;
+    width: 100%;
+    height: 100px;
+    background: linear-gradient(to bottom, transparent, var(--color-blue), transparent);
+    animation: pathFlow 3s infinite linear;
+    filter: blur(2px);
+}
+
+@keyframes pathFlow {
+    0% {
+        top: -100px;
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 1;
+    }
+
+    80% {
+        opacity: 1;
+    }
+
+    100% {
+        top: 100%;
+        opacity: 0;
+    }
+}
+
+.process-steps-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 4rem;
+    padding-left: 120px;
+}
+
+.step-item-3d {
+    position: relative;
+    display: flex;
+    align-items: center;
+    transform-style: preserve-3d;
+}
+
+/* 3D ORB NODE */
+.step-orb-node {
+    position: absolute;
+    left: -120px;
+    width: 120px;
+    display: flex;
+    justify-content: center;
+    z-index: 5;
+}
+
+.orb-inner {
+    width: 70px;
+    height: 70px;
+    background: #0d0f14;
+    border: 1px solid rgba(0, 191, 255, 0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-blue);
+    position: relative;
+    box-shadow: 0 0 20px rgba(0, 191, 255, 0.1);
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.orb-pulse {
+    position: absolute;
+    inset: -5px;
+    border: 1px solid var(--color-blue);
+    border-radius: 50%;
+    opacity: 0;
+    animation: orbRipple 2s infinite;
+}
+
+@keyframes orbRipple {
+    0% {
+        transform: scale(1);
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+}
+
+.step-item-3d:hover .orb-inner {
+    transform: scale(1.1) translateZ(20px);
+    background: var(--color-blue);
+    color: white;
+    box-shadow: 0 0 30px rgba(0, 191, 255, 0.5);
+}
+
+/* 3D STEP CARD */
+.step-card-3d {
+    background: #0d0f14;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    padding: 2.5rem 3rem;
+    border-radius: 30px;
+    width: 100%;
+    position: relative;
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+}
+
+.step-number {
+    position: absolute;
+    top: 1.5rem;
+    right: 2rem;
+    font-size: 3rem;
+    font-weight: 900;
+    color: rgba(0, 191, 255, 0.05);
+    line-height: 1;
+    pointer-events: none;
+}
+
+.step-title-3d {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: white;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.02em;
+}
+
+.step-desc-3d {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    line-height: 1.6;
+    max-width: 90%;
+}
+
+.step-item-3d:hover .step-card-3d {
+    transform: translateZ(40px) translateX(10px);
+    border-color: rgba(0, 191, 255, 0.4);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+    background: #11141b;
+}
+
+.step-item-3d:hover .step-number {
+    color: rgba(0, 191, 255, 0.15);
+}
+
+/* MOBILE ADAPTATION */
+@media (max-width: 900px) {
+    .process-container {
+        grid-template-columns: 1fr;
+    }
+
+    .process-right-3d {
+        perspective: none;
+    }
+
+    .perspective-container {
+        transform: none;
+    }
+
+    .timeline-3d-path {
+        left: 25px;
+    }
+
+    .process-steps-stack {
+        padding-left: 70px;
+        gap: 2.5rem;
+    }
+
+    .step-orb-node {
+        left: -80px;
+        width: 80px;
+    }
+
+    .orb-inner {
+        width: 50px;
+        height: 50px;
+    }
+
+    .step-card-3d {
+        padding: 2rem;
+    }
+
+    .step-title-3d {
+        font-size: 1.4rem;
+    }
+
+    .step-number {
+        font-size: 2.22rem;
+        top: 1rem;
+        right: 1.5rem;
+    }
+}

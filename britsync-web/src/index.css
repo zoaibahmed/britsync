@@ -1,0 +1,239 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;900&display=swap');
+
+:root {
+  /* Core Brand Colors - Shared */
+  --color-burgundy: #800020;
+  --color-blue: #00BFFF;
+
+  /* Animation Easings */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* Light Mode (Default) */
+:root.light {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f4f6f8;
+  --bg-card: rgba(0, 0, 0, 0.03);
+  --bg-card-hover: rgba(0, 0, 0, 0.06);
+  --text-main: #1a1a1a;
+  --text-muted: #555555;
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --nav-bg-scrolled: rgba(255, 255, 255, 0.85);
+}
+
+/* Dark Mode */
+/* Dark Mode - Luxury Pure Black */
+:root.dark {
+  --bg-primary: transparent;
+  --bg-secondary: transparent;
+  --bg-site: #000000;
+  --bg-card: rgba(20, 20, 20, 0.9);
+  /* More solid for popups/cards */
+  --bg-card-hover: rgba(30, 30, 30, 1);
+  --text-main: #ffffff;
+  --text-muted: #b0b0b0;
+  --glass-border: rgba(255, 255, 255, 0.15);
+  /* Crisper borders */
+  --glass-bg: rgba(0, 0, 0, 0.8);
+  --nav-bg-scrolled: rgba(0, 0, 0, 0.8);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background-color: #ffffff;
+  /* Fallback */
+  color: var(--text-main);
+  overflow-x: hidden;
+  transition: background-color 0.5s cubic-bezier(0.16, 1, 0.3, 1), color 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-font-smoothing: antialiased;
+  scroll-behavior: smooth;
+  /* Performance optimization */
+  text-rendering: optimizeSpeed;
+}
+
+:root.dark body {
+  background-color: var(--bg-site);
+}
+
+.noise-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1000;
+  background-image: url("https://grainy-gradients.vercel.app/noise.svg");
+  opacity: 0.02;
+  mix-blend-mode: overlay;
+  /* Animation disabled for performance - constant repaints cause scroll lag */
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: transform;
+}
+
+.vignette {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.4) 100%);
+  pointer-events: none;
+  z-index: 999;
+  transform: translateZ(0);
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+  outline: none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-burgundy);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-blue);
+}
+
+/* Optimized Glass Effect */
+.glass {
+  background: var(--glass-bg);
+  /* Slightly reduced blur for better performance on mobile/tablets */
+  /* Slightly reduced blur from 8px to 5px for significant performance gain on mid-range GPUs */
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border: 1px solid var(--glass-border);
+  /* Force GPU acceleration */
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  will-change: transform, opacity;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--color-burgundy) 0%, var(--color-blue) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+:root.dark .text-gradient {
+  background: linear-gradient(135deg, white 0%, var(--color-blue) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Global Section Title - Fix for shrinking fonts */
+
+.section-title {
+  width: 100% !important;
+  /* Gradient by default */
+  background: linear-gradient(135deg, white 0%, var(--color-blue) 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+@media (max-width: 600px) {
+
+  .section-title,
+  h1.section-title,
+  h2.section-title,
+  h3.section-title {
+    font-size: clamp(2.5rem, 8vw, 3.2rem) !important;
+    font-weight: 900 !important;
+    line-height: 1.13 !important;
+    text-align: center !important;
+    min-width: 0;
+    word-break: break-word;
+    letter-spacing: -0.01em;
+  }
+}
+
+:root.light .section-title {
+  background: linear-gradient(135deg, #111 0%, #333 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+/* Ensure section titles don't shrink */
+h1.section-title,
+h2.section-title,
+h3.section-title {
+  font-size: clamp(2.5rem, 5vw, 4rem) !important;
+  text-align: center !important;
+}
+
+/* Global Section Dividers */
+.glow-divider {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 191, 255, 0.1), transparent);
+  position: relative;
+  margin: 2rem 0;
+  /* Reduced spacing for tighter layout */
+}
+
+.glow-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 200px;
+  height: 60px;
+  background: radial-gradient(circle, rgba(0, 191, 255, 0.08) 0%, transparent 70%);
+  filter: blur(15px);
+  pointer-events: none;
+  transform: translate3d(-50%, -50%, 0);
+  will-change: transform, opacity;
+}
+
+:root.light .glow-divider {
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.05), transparent);
+}
+
+:root.light .glow-divider::after {
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.03) 0%, transparent 70%);
+}
+
+html {
+  font-size: 16px;
+}
+
+@media (max-width: 1280px) {
+  html {
+    font-size: 14px;
+  }
+}

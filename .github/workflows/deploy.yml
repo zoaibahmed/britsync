@@ -1,0 +1,151 @@
+name: Deploy BritSync Stack
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            britsync-web/package-lock.json
+            britsync-docu/package-lock.json
+            ui/package-lock.json
+
+      # ==========================================
+      # 1. BUILD BRITS YNC MAIN WEB (Vite SPA)
+      # ==========================================
+      - name: Build BritSync Web
+        run: |
+          cd britsync-web
+          npm ci
+          npm run build
+        env:
+          CI: false
+
+      # ==========================================
+      # 2. BUILD STANDALONE BRITS YNC DOCU (Vite SPA)
+      # ==========================================
+      - name: Build BritSync Docu
+        run: |
+          cd britsync-docu
+          npm ci
+          npm run build
+        env:
+          CI: false
+
+      # ==========================================
+      # 3. BUILD NEWS UI PORTAL (Next.js App)
+      # ==========================================
+      - name: Build News UI
+        run: |
+          cd ui
+          npm ci
+          npm run build
+        env:
+          CI: false
+
+      # ==========================================
+      # 4. PREPARE DEPLOYMENT ARCHIVES
+      # ==========================================
+      - name: Create Deploy Artifacts
+        run: |
+          # Zip up files to minimize scp overhead
+          zip -r web-dist.zip britsync-web/dist
+          zip -r docu-dist.zip britsync-docu/dist
+          zip -r ui-build.zip ui/.next ui/package.json ui/package-lock.json ui/prisma ui/public ui/next.config.ts
+          zip -r server-files.zip britsync-server/routes britsync-server/models britsync-server/services britsync-server/index.js britsync-server/package.json britsync-server/package-lock.json
+          zip -r automation-files.zip news-automation/app news-automation/requirements.txt news-automation/run_daily.py
+
+      # ==========================================
+      # 5. UPLOAD ZIP FILES TO VPS
+      # ==========================================
+      - name: Install SSH Key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: 'placeholder-will-skip-check'
+          if_key_exists: replace
+
+      - name: Add Known Hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H 194.164.95.174 >> ~/.ssh/known_hosts
+
+      - name: Copy Archives to VPS
+        run: |
+          scp web-dist.zip docu-dist.zip ui-build.zip server-files.zip automation-files.zip root@194.164.95.174:/var/www/britsync/brit/
+
+      # ==========================================
+      # 6. EXTRACT AND RESTART ON VPS
+      # ==========================================
+      - name: Execute Deployment Commands on VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 194.164.95.174
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/britsync/brit
+
+            # Backup and extract main web app
+            unzip -o web-dist.zip
+            rm web-dist.zip
+
+            # Backup and extract standalone e-sign app
+            unzip -o docu-dist.zip
+            rm docu-dist.zip
+
+            # Backup and extract backend API files
+            unzip -o server-files.zip
+            rm server-files.zip
+            cd britsync-server
+            npm install --omit=dev
+            cd ..
+
+            # Backup and extract Next.js UI App files
+            unzip -o ui-build.zip
+            rm ui-build.zip
+            cd ui
+            npm install --omit=dev
+            # Run Prisma migration if prisma schema changes are present
+            npx prisma generate || true
+            cd ..
+
+            # Backup and extract News automation scripts
+            unzip -o automation-files.zip
+            rm automation-files.zip
+            cd news-automation
+            # Setup virtual environment and update packages
+            if [ ! -d "venv_new" ]; then
+              python3 -m venv venv_new
+            fi
+            ./venv_new/bin/pip install -r requirements.txt
+            cd ..
+
+            # ==========================================
+            # PM2 Process Restart Management
+            # ==========================================
+            # 1. Restart Backend Express Server (pm2 ID 0 or name)
+            pm2 restart 0 || pm2 restart britsync-server || pm2 start britsync-server/index.js --name "britsync-server"
+
+            # 2. Restart Next.js UI Portal
+            pm2 restart next || pm2 restart ui || pm2 start "npm -- name ui -- run start" || cd ui && pm2 start "npm run start" --name "ui" && cd ..
+
+            # 3. Restart News Automation Scheduler Loop (if managed by pm2)
+            pm2 restart news-automation || pm2 start news-automation/run_daily.py --name "news-automation" --interpreter ./news-automation/venv_new/bin/python3 || true
+
+            # Verify PM2 status
+            pm2 status

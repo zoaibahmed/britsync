@@ -1,0 +1,149 @@
+.pricing-section {
+    padding: 8rem 2rem;
+    background: var(--bg-secondary);
+}
+
+.pricing-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    align-items: center;
+    /* Center vertically to handle height diffs */
+}
+
+.pricing-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 3rem 2rem;
+    position: relative;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.pricing-card.highlight {
+    background: var(--bg-card);
+    /* Slightly different bg */
+    border-color: var(--color-blue);
+    box-shadow: 0 10px 40px rgba(0, 191, 255, 0.15);
+    transform: scale(1.05);
+    /* Make it pop */
+    z-index: 2;
+}
+
+.popular-badge {
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-blue);
+    color: white;
+    padding: 0.5rem 1.5rem;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.pricing-card h3 {
+    font-size: 1.5rem;
+    color: var(--text-main);
+    margin-bottom: 1rem;
+}
+
+.price {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 1rem;
+}
+
+.plan-desc {
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+}
+
+.plan-features {
+    list-style: none;
+    margin-bottom: 3rem;
+    flex-grow: 1;
+}
+
+.plan-features li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1rem;
+    color: var(--text-muted);
+}
+
+.feature-icon {
+    color: var(--color-blue);
+}
+
+.btn-highlight {
+    background: var(--color-blue);
+    color: white;
+    width: 100%;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: var(--text-main);
+    width: 100%;
+}
+
+.btn-outline:hover {
+    background: var(--bg-secondary);
+    color: var(--text-main);
+}
+
+@media (max-width: 900px) {
+    .pricing-card.highlight {
+        transform: none;
+    }
+}
+
+/* ===========================================
+   LIGHT MODE REDESIGN (TECHNICAL LIGHT)
+   =========================================== */
+:root.light .pricing-section {
+    background-color: #f7f9fc;
+}
+
+:root.light .pricing-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f9fbff 100%);
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+
+:root.light .pricing-card.highlight {
+    background: #ffffff;
+    border-color: var(--color-blue);
+    box-shadow: 0 20px 50px rgba(0, 123, 255, 0.15);
+}
+
+:root.light .pricing-card h3,
+:root.light .price {
+    color: #1a1a1a;
+}
+
+:root.light .plan-desc,
+:root.light .plan-features li {
+    color: #555;
+}
+
+:root.light .btn-outline {
+    border-color: rgba(0, 0, 0, 0.1);
+    color: #111;
+}
+
+:root.light .btn-outline:hover {
+    background: rgba(0, 0, 0, 0.05);
+}

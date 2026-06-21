@@ -1,0 +1,5 @@
+{
+    "action": "sendMessage",
+    "sessionId": "test-session-123",
+    "chatInput": "Hello, are you working?"
+}

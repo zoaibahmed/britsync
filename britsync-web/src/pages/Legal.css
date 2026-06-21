@@ -1,0 +1,189 @@
+/* Legal Pages Layout */
+.legal-page {
+    padding-top: 140px;
+    /* More breathing room for the luxury header */
+    padding-bottom: 120px;
+    min-height: 100vh;
+    background-color: var(--bg-site, #000);
+    color: var(--text-main, #fff);
+    transition: background-color 0.8s var(--ease-out-expo), color 0.8s var(--ease-out-expo);
+    position: relative;
+}
+
+.legal-container {
+    max-width: 1000px;
+    /* Slightly wider for better readability */
+    margin: 0 auto;
+    padding: 0 40px;
+}
+
+/* Header Section - Glass Card Style */
+.legal-header {
+    text-align: center;
+    margin-bottom: 80px;
+    padding: 60px 20px;
+    border-radius: 24px;
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.legal-header h1 {
+    font-size: clamp(3rem, 6vw, 4.5rem);
+    font-weight: 900;
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, var(--text-main) 0%, var(--color-blue, #00BFFF) 100%);
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    letter-spacing: -2px;
+    line-height: 1.1;
+}
+
+.legal-header p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-family: var(--font-mono, 'Geist Mono', monospace);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 500;
+}
+
+/* Content Sections */
+.legal-content section {
+    display: flex;
+    gap: 32px;
+    margin-bottom: 64px;
+    padding: 40px;
+    background: var(--bg-card);
+    border-radius: 20px;
+    border: 1px solid var(--glass-border);
+    transition: transform 0.4s var(--ease-out-expo), background-color 0.4s ease;
+}
+
+.legal-content section:hover {
+    background: var(--bg-card-hover);
+    transform: translateY(-5px);
+}
+
+.section-icon {
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    background: rgba(0, 191, 255, 0.1);
+    border: 1px solid rgba(0, 191, 255, 0.2);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-blue, #00BFFF);
+}
+
+.section-text {
+    flex: 1;
+}
+
+.section-text h2 {
+    font-size: 2rem;
+    margin-bottom: 20px;
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: -0.5px;
+}
+
+.section-text p {
+    font-size: 1.15rem;
+    line-height: 1.8;
+    margin-bottom: 20px;
+    color: var(--text-muted);
+}
+
+.section-text ul {
+    list-style-type: none;
+    padding-left: 0;
+    display: grid;
+    gap: 16px;
+}
+
+.section-text li {
+    padding: 12px 16px;
+    padding-left: 40px;
+    position: relative;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    border-left: 2px solid var(--color-blue, #00BFFF);
+}
+
+.section-text li::before {
+    content: "✓";
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-blue, #00BFFF);
+    font-weight: bold;
+}
+
+.contact-email {
+    display: inline-block;
+    padding: 12px 24px;
+    background: rgba(0, 191, 255, 0.1);
+    border-radius: 30px;
+    font-weight: bold;
+    color: var(--color-blue, #00BFFF) !important;
+    margin-top: 10px;
+    border: 1px solid rgba(0, 191, 255, 0.2);
+    transition: all 0.3s ease;
+}
+
+.contact-email:hover {
+    background: var(--color-blue, #00BFFF);
+    color: #fff !important;
+}
+
+/* Light Mode Overrides (Optional refinement) */
+:root.light .legal-header {
+    background: rgba(0, 0, 0, 0.02);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+:root.light .legal-content section {
+    background: #fff;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+/* Responsive Design */
+@media (max-width: 900px) {
+    .legal-container {
+        padding: 0 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .legal-page {
+        padding-top: 100px;
+    }
+
+    .legal-header {
+        margin-bottom: 40px;
+        padding: 40px 15px;
+    }
+
+    .legal-header h1 {
+        font-size: 2.8rem;
+    }
+
+    .legal-content section {
+        flex-direction: column;
+        gap: 20px;
+        padding: 30px 20px;
+    }
+
+    .section-icon {
+        width: 48px;
+        height: 48px;
+    }
+}

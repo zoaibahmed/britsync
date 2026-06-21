@@ -1,0 +1,340 @@
+/* 
+  BRITSYNC PREMIUM SUCCESS HUB & CV-STYLE DOCUMENT (V15.1)
+  Finalized for High-Fidelity Geometry, Branding, and Signature Reliability.
+*/
+
+:root {
+  --pv-doc-bg: #FFFFFF; /* Using fixed background image */
+  --pv-navy: #1A2A40;
+  --pv-black: #000000;
+  --pv-muted: #57606f;
+  --pv-shadow: 0 40px 100px rgba(26, 42, 64, 0.08);
+  --pv-viewer-bg: #1e2124;
+  --hub-bg: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  --hub-card: #ffffff;
+  --hub-text: #1A2A40;
+}
+
+:root.dark {
+  --pv-viewer-bg: #000000;
+  --hub-bg: radial-gradient(circle at top, #1A1A1A 0%, #000000 100%);
+  --hub-card: #151515;
+  --hub-text: #ffffff;
+  --pv-shadow: 0 40px 100px rgba(0, 0, 0, 0.8); /* Dark shadow for document depth */
+}
+
+/* --- WRAPPER --- */
+.proposal-certificate-wrapper {
+    background: var(--hub-bg); /* Use dynamic hub background */
+    color: var(--hub-text);
+    min-height: 100vh;
+    padding: 80px 0;
+    font-family: 'Outfit', 'Inter', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* --- THE DOCUMENT (CV-STYLE) --- */
+.proposal-document.dynamic-height {
+    background: transparent !important; /* REVEAL THE IMAGE */
+    color: var(--pv-black) !important;
+    width: 1000px;
+    min-height: 100vh;
+    padding: 60px;
+    position: relative;
+    box-shadow: var(--pv-shadow);
+    overflow: hidden; /* Containment for background layers */
+    background-image: url("/proposal-bg.png");
+    background-size: 100% 100%; /* ENSURE FULL PAGE COVERAGE */
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.document-page-content {
+    position: relative;
+    z-index: 1; /* Content above background image */
+}
+
+.doc-logo-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 40px;
+}
+
+.doc-logo-v11 {
+    height: 160px;
+}
+
+.doc-cover-meta {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.doc-cover-meta h1 {
+    font-size: 3rem;
+    color: var(--pv-navy);
+    font-weight: 950;
+    letter-spacing: -1px;
+    text-transform: uppercase;
+}
+
+.doc-id-badge {
+    background: var(--pv-navy);
+    color: white;
+    padding: 10px 20px;
+    font-weight: 900;
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+    display: inline-block;
+    margin-bottom: 20px;
+}
+
+/* --- CV MODULAR LAYOUT --- */
+.cv-modular-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 40px;
+    border-top: 1px solid rgba(26, 42, 64, 0.1);
+    padding-top: 40px;
+}
+
+.cv-sidebar { display: flex; flex-direction: column; gap: 40px; }
+.cv-main-content { display: flex; flex-direction: column; gap: 40px; }
+
+.cv-sidebar-section h3 {
+    font-size: 0.9rem;
+    font-weight: 950;
+    color: var(--pv-navy);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 15px;
+}
+
+.cv-objective-card {
+    background: white;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(26, 42, 64, 0.05);
+    margin-bottom: 10px;
+}
+
+/* --- CONTENT BLOCKS & WRAPPING --- */
+.cv-content-block h2 {
+    font-size: 1.1rem;
+    font-weight: 950;
+    color: var(--pv-navy);
+    margin-bottom: 15px;
+}
+
+.cv-content-block p {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    word-break: break-word; 
+    overflow-wrap: break-word;
+    color: inherit;
+}
+
+/* --- SIGNATURES RE-ALIGNED (V16.0) --- */
+.cert-authorization {
+    margin-top: 50px;
+    padding-top: 40px;
+    border-top: 2px solid rgba(26, 42, 64, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 40px;
+}
+
+.sig-column { 
+    flex: 1;
+}
+
+.cert-signature-box { 
+    height: 80px; 
+    display: flex; 
+    align-items: center; 
+    margin-bottom: 10px;
+}
+
+.sig-column.client-side .cert-signature-box { justify-content: flex-start; }
+.sig-column.bs-side .cert-signature-box { justify-content: flex-end; }
+
+.cert-signature-box img {
+    height: 80px;
+    mix-blend-mode: multiply; /* Perfect for ivory paper document */
+    background: transparent !important;
+}
+
+/* --- THE DEFINITIVE DARK MODE FIX (V20.1) --- */
+:root.dark .success-card-v14 .cert-signature-box img,
+:root.dark .hub-auth-signature .cert-signature-box img {
+    filter: invert(1) brightness(1.5); /* Make signatures crisp white on dark card */
+    mix-blend-mode: normal !important; /* Force normal mode to prevent black squares */
+    background: transparent !important;
+}
+
+/* --- SUCCESS HUB AUTH UNIT --- */
+.hub-auth-signature .cert-authorization {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 40px;
+    margin: 0;
+    padding: 0;
+    border-top: none;
+}
+
+.hub-auth-signature .cert-signature-box {
+    margin-bottom: 5px;
+}
+
+.sig-info strong { 
+    color: var(--hub-text); 
+    display: block; 
+    font-size: 1.1rem; 
+    font-weight: 900;
+}
+
+.sig-label { 
+    font-size: 0.65rem; 
+    text-transform: uppercase; 
+    opacity: 0.6; 
+    font-weight: 800; 
+    letter-spacing: 1px;
+}
+
+/* AUTHORIZATION BUTTON GATEWAY */
+.accept-btn-premium {
+    background: var(--pv-navy);
+    color: white;
+    padding: 20px 60px;
+    border-radius: 100px;
+    font-weight: 950;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 15px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 20px 40px rgba(26, 42, 64, 0.2);
+    margin: 40px auto;
+}
+
+/* SIGNATURE MODAL - THEME AWARE V15.2 */
+.sig-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(15px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.sig-modal-content {
+    background: var(--hub-card);
+    color: var(--hub-text);
+    width: 100%;
+    max-width: 600px;
+    padding: 40px;
+    border-radius: 32px;
+    position: relative;
+    box-shadow: 0 50px 150px rgba(0,0,0,0.5);
+    border: 1px solid rgba(128,128,128,0.1);
+}
+
+.modal-header h3 { 
+    color: var(--hub-text); 
+    font-size: 1.8rem; 
+    font-weight: 950; 
+    margin: 10px 0; 
+}
+
+.sig-pad-v5 {
+    background: rgba(128,128,128,0.05); /* ADAPTIVE DEPTH */
+    border: 2px dashed rgba(128,128,128,0.25);
+    border-radius: 20px;
+    margin: 25px 0;
+    height: 250px;
+    overflow: hidden;
+}
+
+.sigCanvas { width: 100%; height: 100%; }
+
+.modal-btns { display: flex; gap: 20px; }
+.modal-btns button {
+    flex: 1;
+    padding: 18px;
+    border-radius: 16px;
+    font-weight: 950;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-clear { background: rgba(128,128,128,0.1); color: var(--hub-text); }
+.btn-done { background: var(--pv-navy); color: white; }
+
+.modal-close-icon {
+    position: absolute;
+    top: 30px;
+    right: 30px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--hub-text);
+    opacity: 0.5;
+}
+
+.success-hub-v14 {
+    text-align: center;
+    max-width: 800px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 140px; /* REPOSITIONED LOWER AS REQUESTED */
+    margin-bottom: 60px; /* SPACE FOR FOOTER */
+}
+.success-card-v14 {
+    background: var(--hub-card);
+    color: var(--hub-text);
+    padding: 60px;
+    border-radius: 40px;
+    box-shadow: var(--pv-shadow);
+    width: 100%;
+    border: 1px solid rgba(128,128,128,0.1);
+}
+
+.hub-footer-v14 {
+    margin-top: 15px; /* TIGHTENED FOR SEAMLESS LAYOUT */
+    opacity: 0.6;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--hub-text);
+    text-align: center;
+}
+
+.hub-footer-row {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+}
+
+.download-btn-v5 {
+    background: var(--pv-navy);
+    color: white;
+    padding: 18px 45px;
+    border-radius: 100px;
+    font-weight: 950;
+    text-transform: uppercase;
+    border: none;
+    cursor: pointer;
+}

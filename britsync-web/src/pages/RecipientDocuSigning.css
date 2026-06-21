@@ -1,0 +1,409 @@
+/* RecipientDocuSigning.css */
+
+.signing-container {
+    background-color: #0b0f19;
+    color: #f3f4f6;
+    min-height: 100vh;
+    font-family: 'Inter', system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header */
+.signing-header {
+    background-color: #0f172a;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.signing-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.signing-logo h2 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #00bfff 0%, #800020 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0;
+}
+
+.signing-doc-name {
+    font-size: 1rem;
+    color: #d1d5db;
+    font-weight: 500;
+}
+
+.signing-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.expiry-countdown {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    color: #f59e0b;
+    background-color: rgba(245, 158, 11, 0.1);
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.btn-complete {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+    padding: 0.7rem 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+    transition: all 0.3s ease;
+}
+
+.btn-complete:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+.btn-complete:disabled {
+    background: #4b5563;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+/* Document Workspace */
+.signing-workspace {
+    flex: 1;
+    background: #080c14;
+    padding: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    overflow-y: auto;
+}
+
+.signing-page-wrapper {
+    position: relative;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+    background-color: white;
+    border-radius: 4px;
+}
+
+.signing-canvas-element {
+    display: block;
+    max-width: 100%;
+}
+
+.signing-overlay-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    pointer-events: none; /* Let inputs/signature boxes receive clicks directly */
+}
+
+/* Signing Inputs / Overlay Elements */
+.signing-input-box {
+    position: absolute;
+    z-index: 20;
+    pointer-events: auto; /* Re-enable clicks */
+    box-sizing: border-box;
+}
+
+.signing-text-input {
+    width: 100%;
+    height: 100%;
+    background: rgba(59, 130, 246, 0.08);
+    border: 1.5px solid #3b82f6;
+    border-radius: 4px;
+    padding: 0 8px;
+    font-size: 13px;
+    color: #000;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.signing-text-input:focus {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: #00bfff;
+    box-shadow: 0 0 8px rgba(0, 191, 255, 0.3);
+}
+
+.signing-text-input.required-empty {
+    border-color: #ef4444;
+    background-color: rgba(239, 68, 68, 0.08);
+}
+
+/* Interactive Signature Placements */
+.signing-sig-placeholder {
+    width: 100%;
+    height: 100%;
+    background: rgba(168, 85, 247, 0.08);
+    border: 1.5px dashed #a855f7;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #a855f7;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+    gap: 4px;
+    user-select: none;
+    padding: 4px;
+    text-align: center;
+}
+
+.signing-sig-placeholder:hover {
+    background: rgba(168, 85, 247, 0.16);
+    border-color: #c084fc;
+    color: #c084fc;
+}
+
+.signing-sig-placeholder.required-empty {
+    border-color: #ef4444;
+    color: #ef4444;
+    background-color: rgba(239, 68, 68, 0.08);
+}
+
+.signing-sig-preview {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+/* Rendered Admin Signature (non-editable for client) */
+.signing-sig-locked {
+    width: 100%;
+    height: 100%;
+    border: 1.5px solid rgba(245, 158, 11, 0.4);
+    background-color: rgba(245, 158, 11, 0.05);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+}
+
+.locked-label {
+    position: absolute;
+    top: -14px;
+    left: 0;
+    font-size: 8px;
+    background: #f59e0b;
+    color: #0f172a;
+    padding: 1px 4px;
+    border-radius: 2px;
+    font-weight: 700;
+}
+
+/* Status Screen Overlays */
+.status-screen-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    background-color: #080c14;
+}
+
+.status-card {
+    background: rgba(17, 24, 39, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 3rem 2.5rem;
+    max-width: 500px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(12px);
+}
+
+.status-icon-wrapper {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem auto;
+}
+
+.status-icon-wrapper.success {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.status-icon-wrapper.error {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.status-card h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+}
+
+.status-card p {
+    color: #9ca3af;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+}
+
+.btn-download-big {
+    background: linear-gradient(135deg, #00bfff 0%, #008cc2 100%);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    border-radius: 10px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    width: 100%;
+    box-shadow: 0 4px 16px rgba(0, 191, 255, 0.3);
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+
+.btn-download-big:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 22px rgba(0, 191, 255, 0.4);
+}
+
+/* Light Mode Overrides */
+:root.light .signing-container {
+    background-color: #f4f6f8;
+    color: #1a1a1a;
+}
+
+:root.light .signing-header {
+    background-color: #ffffff;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+:root.light .signing-logo h2 {
+    background: linear-gradient(135deg, #008cc2 0%, #800020 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+:root.light .signing-doc-name {
+    color: #1a1a1a;
+}
+
+:root.light .signing-workspace {
+    background: #d1d5db;
+}
+
+:root.light .status-screen-container {
+    background-color: #f4f6f8;
+}
+
+:root.light .status-card {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    color: #1a1a1a;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+:root.light .status-card p {
+    color: #555555;
+}
+
+:root.light .signing-sig-preview {
+    filter: none;
+}
+
+:root.light .modal-overlay {
+    background: rgba(255, 255, 255, 0.7);
+}
+
+:root.light .modal-content {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    color: #1a1a1a;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+}
+
+:root.light .modal-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+:root.light .modal-header h2 {
+    color: #1a1a1a;
+}
+
+:root.light .modal-close {
+    color: #555555;
+}
+
+:root.light .modal-close:hover {
+    color: #1a1a1a;
+}
+
+:root.light .modal-footer {
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+:root.light .btn-secondary {
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    color: #374151;
+}
+
+:root.light .btn-secondary:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+    color: #111111;
+    border-color: rgba(0, 0, 0, 0.25);
+}
+
+/* Signature Pad Modal Styling */
+.signature-pad-modal {
+    max-width: 500px;
+}
+
+.sig-pad-wrapper {
+    background: #fff;
+    border-radius: 8px;
+    margin: 1.5rem 0;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sig-canvas {
+    width: 450px;
+    height: 200px;
+    background-color: #fff;
+    display: block;
+    margin: 0 auto;
+}
+
+

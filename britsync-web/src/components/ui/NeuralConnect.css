@@ -1,0 +1,29 @@
+.neural-connect-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+    background: transparent;
+}
+
+.neural-connect-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.neural-overlay-gradient {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, transparent 0%, var(--bg-primary) 100%);
+    opacity: 0.6;
+}
+
+:root.light .neural-overlay-gradient {
+    background: radial-gradient(circle at center, transparent 0%, #ffffff 100%);
+    opacity: 0.4;
+}

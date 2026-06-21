@@ -1,0 +1,13 @@
+@echo off
+echo Stopping Next.js server...
+taskkill /F /IM node.exe
+
+echo Cleaning caches...
+rmdir /s /q .next
+rmdir /s /q node_modules\.prisma
+
+echo Regenerating Prisma Client...
+call npx prisma generate
+
+echo Restarting Development Server...
+npm run dev

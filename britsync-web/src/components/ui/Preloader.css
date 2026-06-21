@@ -1,0 +1,446 @@
+/* Preloader Overlay */
+.preloader-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Themes styling */
+.preloader-overlay.dark-theme {
+    background-color: #05060b;
+    color: #e2e8f0;
+}
+
+.preloader-overlay.light-theme {
+    background-color: #f8fafc;
+    color: #0f172a;
+}
+
+/* Grid Overlay & Scanner Line */
+.grid-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.dark-theme .grid-overlay {
+    background-image: 
+        linear-gradient(rgba(0, 191, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 191, 255, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    background-position: center;
+}
+
+.light-theme .grid-overlay {
+    background-image: 
+        linear-gradient(rgba(79, 70, 229, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(79, 70, 229, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    background-position: center;
+}
+
+.scanner-line {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    z-index: 2;
+    pointer-events: none;
+    animation: scan 3s linear infinite;
+}
+
+.dark-theme .scanner-line {
+    background: linear-gradient(90deg, transparent, rgba(0, 191, 255, 0.3), transparent);
+    box-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
+}
+
+.light-theme .scanner-line {
+    background: linear-gradient(90deg, transparent, rgba(79, 70, 229, 0.2), transparent);
+    box-shadow: 0 0 8px rgba(79, 70, 229, 0.4);
+}
+
+/* Preloader Container */
+.preloader-container {
+    position: relative;
+    z-index: 10;
+    width: 90%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+/* Cybernetic Ring Graphic */
+.cyber-ring-outer {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cyber-ring-inner {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 2px dashed;
+    animation: rotate-reverse 10s linear infinite;
+}
+
+.dark-theme .cyber-ring-inner {
+    border-color: rgba(0, 191, 255, 0.3);
+}
+
+.light-theme .cyber-ring-inner {
+    border-color: rgba(79, 70, 229, 0.2);
+}
+
+.cyber-ring-outer::before {
+    content: '';
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 1px solid;
+    border-top-color: transparent;
+    border-bottom-color: transparent;
+    animation: rotate 6s linear infinite;
+}
+
+.dark-theme .cyber-ring-outer::before {
+    border-color: rgba(255, 0, 127, 0.4);
+    border-top-color: transparent;
+    border-bottom-color: transparent;
+}
+
+.light-theme .cyber-ring-outer::before {
+    border-color: rgba(6, 182, 212, 0.4);
+    border-top-color: transparent;
+    border-bottom-color: transparent;
+}
+
+.cyber-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite ease-in-out;
+}
+
+.dark-theme .cyber-dot {
+    background-color: #00bfff;
+    box-shadow: 0 0 10px #00bfff;
+}
+
+.light-theme .cyber-dot {
+    background-color: #4f46e5;
+    box-shadow: 0 0 8px #4f46e5;
+}
+
+/* Brand Header */
+.brand-header {
+    margin-bottom: 1.5rem;
+}
+
+.brand-title {
+    font-size: 2.25rem;
+    font-weight: 900;
+    margin: 0;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
+.dark-theme .brand-title {
+    background: linear-gradient(135deg, #00bfff 0%, #ff007f 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 15px rgba(0, 191, 255, 0.2));
+}
+
+.light-theme .brand-title {
+    background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.brand-subtitle {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.4em;
+    opacity: 0.6;
+    text-transform: uppercase;
+    margin-top: 0.5rem;
+    display: inline-block;
+}
+
+/* Counter */
+.progress-counter-container {
+    margin-bottom: 1.5rem;
+}
+
+.progress-percentage {
+    font-size: 4.5rem;
+    font-weight: 800;
+    line-height: 1;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+}
+
+.monospace {
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.dark-theme .progress-percentage {
+    color: #e2e8f0;
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+}
+
+.light-theme .progress-percentage {
+    color: #0f172a;
+}
+
+.percent-sign {
+    font-size: 1.75rem;
+    font-weight: 500;
+    margin-left: 2px;
+}
+
+.dark-theme .percent-sign {
+    color: #ff007f;
+}
+
+.light-theme .percent-sign {
+    color: #06b6d4;
+}
+
+/* Progress Bar */
+.tech-progress-wrapper {
+    width: 100%;
+    margin-bottom: 2rem;
+}
+
+.tech-progress-bar {
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+}
+
+.dark-theme .tech-progress-bar {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.light-theme .tech-progress-bar {
+    background-color: rgba(0, 0, 0, 0.06);
+}
+
+.tech-progress-fill {
+    height: 100%;
+    transition: width 0.1s linear;
+}
+
+.dark-theme .tech-progress-fill {
+    background: linear-gradient(90deg, #ff007f, #00bfff);
+    box-shadow: 0 0 8px rgba(0, 191, 255, 0.6);
+}
+
+.light-theme .tech-progress-fill {
+    background: linear-gradient(90deg, #4f46e5, #06b6d4);
+    box-shadow: 0 0 6px rgba(79, 70, 229, 0.4);
+}
+
+.progress-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.65rem;
+    margin-top: 0.5rem;
+    opacity: 0.5;
+    letter-spacing: 0.1em;
+}
+
+/* Console Terminal Logs */
+.tech-console {
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid;
+    text-align: left;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.dark-theme .tech-console {
+    background-color: rgba(10, 11, 16, 0.7);
+    border-color: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+}
+
+.light-theme .tech-console {
+    background-color: rgba(255, 255, 255, 0.8);
+    border-color: rgba(0, 0, 0, 0.08);
+    backdrop-filter: blur(10px);
+}
+
+.console-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.6rem;
+    border-bottom: 1px solid;
+    letter-spacing: 0.05em;
+    opacity: 0.7;
+}
+
+.dark-theme .console-header {
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+.light-theme .console-header {
+    border-color: rgba(0, 0, 0, 0.05);
+}
+
+.console-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.dark-theme .console-dot {
+    background-color: #00bfff;
+    box-shadow: 0 0 6px #00bfff;
+}
+
+.light-theme .console-dot {
+    background-color: #4f46e5;
+    box-shadow: 0 0 4px #4f46e5;
+}
+
+.console-body {
+    padding: 0.75rem;
+    font-size: 0.7rem;
+    height: 72px; /* Fixed height for 3 lines */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 4px;
+}
+
+.console-line {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.console-prompt {
+    font-weight: bold;
+}
+
+.dark-theme .console-prompt {
+    color: #ff007f;
+}
+
+.light-theme .console-prompt {
+    color: #06b6d4;
+}
+
+.console-line.line-active {
+    opacity: 1;
+    font-weight: 500;
+}
+
+.dark-theme .console-line.line-active {
+    color: #00bfff;
+    text-shadow: 0 0 4px rgba(0, 191, 255, 0.3);
+}
+
+.light-theme .console-line.line-active {
+    color: #4f46e5;
+}
+
+.console-line.line-dim {
+    opacity: 0.35;
+}
+
+/* Animations */
+@keyframes scan {
+    0% {
+        top: -10px;
+    }
+    100% {
+        top: calc(100% + 10px);
+    }
+}
+
+@keyframes rotate {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes rotate-reverse {
+    0% {
+        transform: rotate(360deg);
+    }
+    100% {
+        transform: rotate(0deg);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.3;
+        transform: scale(0.9);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+}
+
+.blink {
+    animation: blink-anim 1s step-end infinite;
+}
+
+@keyframes blink-anim {
+    from, to {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0;
+    }
+}
+
+/* Responsive adjustment */
+@media (max-width: 640px) {
+    .brand-title {
+        font-size: 1.75rem;
+    }
+    .progress-percentage {
+        font-size: 3.5rem;
+    }
+    .preloader-container {
+        width: 85%;
+    }
+}

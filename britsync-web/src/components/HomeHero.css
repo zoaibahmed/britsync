@@ -1,0 +1,357 @@
+/* Homepage Hero section layout container */
+.home-hero-section {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    z-index: 10;
+    box-sizing: border-box;
+    transition: background-color 0.4s ease;
+}
+
+:root.dark .home-hero-section {
+    background-color: #030408; /* Midnight Obsidian */
+}
+
+:root.light .home-hero-section {
+    background-color: #ffffff; /* Clean white */
+}
+
+/* Background Glowing Blurs */
+.home-hero-glow-1 {
+    position: absolute;
+    top: 15%;
+    left: -10%;
+    width: 500px;
+    height: 500px;
+    border-radius: 50%;
+    filter: blur(60px);
+    pointer-events: none;
+    z-index: 2;
+}
+
+:root.dark .home-hero-glow-1 {
+    background: radial-gradient(circle, rgba(0, 191, 255, 0.06) 0%, rgba(139, 92, 246, 0.02) 60%, transparent 100%);
+}
+
+:root.light .home-hero-glow-1 {
+    background: radial-gradient(circle, rgba(79, 70, 229, 0.04) 0%, rgba(6, 182, 212, 0.02) 60%, transparent 100%);
+}
+
+.home-hero-glow-2 {
+    position: absolute;
+    bottom: 5%;
+    right: -10%;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    z-index: 2;
+}
+
+:root.dark .home-hero-glow-2 {
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.04) 0%, rgba(0, 191, 255, 0.01) 60%, transparent 100%);
+}
+
+:root.light .home-hero-glow-2 {
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.03) 0%, rgba(79, 70, 229, 0.02) 60%, transparent 100%);
+}
+
+/* Subtle Technical Grid Overlay */
+.home-hero-grid-pattern {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+:root.dark .home-hero-grid-pattern {
+    background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 50px 50px;
+}
+
+:root.light .home-hero-grid-pattern {
+    background-image: 
+        linear-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px);
+    background-size: 50px 50px;
+}
+
+/* Center grid bounds */
+.home-hero-container {
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 7rem 2rem 3rem 2rem;
+    position: relative;
+    z-index: 10;
+    box-sizing: border-box;
+}
+
+.home-hero-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4rem;
+    align-items: center;
+}
+
+@media (min-width: 1024px) {
+    .home-hero-grid {
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 3rem;
+    }
+}
+
+/* Left Brand Column styling */
+.hero-content-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+}
+
+@media (min-width: 1024px) {
+    .hero-content-left {
+        align-items: flex-start;
+        text-align: left;
+    }
+}
+
+/* Premium Badge */
+.hero-micro-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0.5rem 1.25rem;
+    border-radius: 100px;
+    margin-bottom: 2rem;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+:root.dark .hero-micro-badge {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+:root.light .hero-micro-badge {
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.badge-glow-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    animation: badge-dot-pulse 2s infinite ease-in-out;
+}
+
+:root.dark .badge-glow-dot {
+    background-color: #00bfff;
+    box-shadow: 0 0 10px #00bfff;
+}
+
+:root.light .badge-glow-dot {
+    background-color: #4f46e5;
+    box-shadow: 0 0 10px #4f46e5;
+}
+
+.badge-text {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+}
+
+:root.dark .badge-text {
+    color: #00bfff;
+}
+
+:root.light .badge-text {
+    color: #4f46e5;
+}
+
+/* Headline Wrapper */
+.hero-headline-wrap {
+    width: 100%;
+    margin-bottom: 1.5rem;
+}
+
+/* Custom Text Gradient for title text */
+.hero-headline-text .typewriter-line {
+    font-size: clamp(2.25rem, 8vw, 4.5rem) !important;
+    font-weight: 900 !important;
+    line-height: 1.15 !important;
+    letter-spacing: -0.02em;
+}
+
+:root.dark .hero-headline-text .typewriter-line {
+    background: linear-gradient(135deg, #ffffff 40%, #00bfff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+:root.light .hero-headline-text .typewriter-line {
+    background: linear-gradient(135deg, #0f172a 40%, #4f46e5 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+@media (min-width: 1024px) {
+    .hero-headline-text .typewriter-line {
+        font-size: clamp(3rem, 4.5vw, 4.25rem) !important;
+    }
+}
+
+/* Subheading Paragraph */
+.hero-paragraph {
+    font-size: clamp(1rem, 3vw, 1.1rem);
+    line-height: 1.7;
+    max-width: 620px;
+    margin: 0 0 2.5rem 0;
+}
+
+:root.dark .hero-paragraph {
+    color: rgba(255, 255, 255, 0.65);
+}
+
+:root.light .hero-paragraph {
+    color: #475569; /* Sleek charcoal */
+}
+
+/* Action button configurations */
+.hero-btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    justify-content: center;
+    width: 100%;
+}
+
+@media (min-width: 1024px) {
+    .hero-btn-group {
+        justify-content: flex-start;
+    }
+}
+
+/* Premium Primary Button custom rules */
+:root.dark .btn-hero-primary {
+    background: linear-gradient(135deg, #00bfff, #8b5cf6) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 15px rgba(0, 191, 255, 0.2) !important;
+}
+
+:root.dark .btn-hero-primary:hover {
+    box-shadow: 0 6px 20px rgba(0, 191, 255, 0.4) !important;
+}
+
+:root.light .btn-hero-primary {
+    background: linear-gradient(135deg, #4f46e5, #06b6d4) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 15px rgba(79, 70, 229, 0.15) !important;
+}
+
+:root.light .btn-hero-primary:hover {
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.35) !important;
+}
+
+.btn-hero-primary, .btn-hero-secondary {
+    transition: all 0.3s ease !important;
+}
+
+.btn-hero-primary:hover, .btn-hero-secondary:hover {
+    transform: translateY(-2px);
+}
+
+/* Premium Glass/Outline secondary button custom rules */
+:root.dark .btn-hero-secondary {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    color: #ffffff !important;
+    backdrop-filter: blur(10px);
+}
+
+:root.dark .btn-hero-secondary:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border-color: #00bfff !important;
+}
+
+:root.light .btn-hero-secondary {
+    background: rgba(0, 0, 0, 0.01) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    color: #0f172a !important;
+    backdrop-filter: blur(10px);
+}
+
+:root.light .btn-hero-secondary:hover {
+    background: rgba(0, 0, 0, 0.04) !important;
+    border-color: #4f46e5 !important;
+}
+
+/* Trust Line text */
+.hero-trust-tag {
+    font-size: 0.72rem;
+    margin-top: 2rem;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+:root.dark .hero-trust-tag {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+:root.light .hero-trust-tag {
+    color: #64748b;
+}
+
+:root.dark .hero-trust-tag span {
+    color: #8b5cf6;
+}
+
+:root.light .hero-trust-tag span {
+    color: #4f46e5;
+}
+
+/* Visual Column alignment */
+.hero-content-right {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+/* Keyframe animations */
+@keyframes badge-dot-pulse {
+    0%, 100% {
+        opacity: 0.5;
+        transform: scale(0.9);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.15);
+    }
+}
+
+/* Mobile responsive fixes */
+@media (max-width: 640px) {
+    .home-hero-container {
+        padding: 6rem 1.25rem 2rem 1.25rem;
+    }
+    .hero-btn-group a {
+        width: 100%;
+    }
+    .hero-btn-group button {
+        width: 100%;
+        text-align: center;
+    }
+}

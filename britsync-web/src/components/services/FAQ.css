@@ -1,0 +1,141 @@
+.faq-section {
+    padding: 10rem 2rem;
+    background: transparent;
+    perspective: 1200px;
+}
+
+:root.light .faq-section {
+    background: #f8f9fa;
+}
+
+.faq-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* SECTION TITLE (Frequently Asked Questions) - MASSIVE */
+.faq-container .section-title {
+    font-size: 4.5rem;
+    font-weight: 800;
+    line-height: 1.1;
+    background: linear-gradient(135deg, white 0%, var(--color-blue) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 4rem;
+    text-align: center;
+    width: 100%;
+}
+
+:root.light .faq-container .section-title {
+    background: linear-gradient(135deg, #111 0%, #333 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.faq-grid {
+    margin-top: 4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.faq-item-3d {
+    background: #0d0f14;
+    /* Deep Matte */
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 24px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transform-style: preserve-3d;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.faq-card-content {
+    pointer-events: none;
+}
+
+.faq-header,
+.faq-body {
+    pointer-events: auto;
+}
+
+.faq-item-3d:hover,
+.faq-item-3d.active {
+    border-color: rgba(0, 191, 255, 0.3);
+    background: #11141b;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+/* INDIVIDUAL QUESTION HEADER */
+.faq-header {
+    padding: 1.5rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* THE QUESTION TEXT ITSELF - SMALLER */
+.faq-header h3 {
+    font-size: 1.25rem;
+    /* Reduced from 4.5rem error to normal header size */
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-main);
+}
+
+:root.light .faq-header h3 {
+    color: #222;
+}
+
+/* Adjust sizes for mobile */
+@media (max-width: 768px) {
+    .faq-container .section-title {
+        font-size: 3rem;
+    }
+
+    .faq-header h3 {
+        font-size: 1.1rem;
+    }
+}
+
+.faq-icon {
+    color: var(--color-blue);
+    display: flex;
+    align-items: center;
+}
+
+.faq-body {
+    padding: 0 2rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+.faq-body p {
+    padding-bottom: 2rem;
+    font-size: 0.95rem;
+}
+
+:root.light .faq-item-3d {
+    background: linear-gradient(135deg, #ffffff 0%, #f7f9fc 100%);
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03), inset 0 0 0 1px rgba(255, 255, 255, 1);
+}
+
+:root.light .faq-item-3d:hover,
+:root.light .faq-item-3d.active {
+    background: #ffffff;
+    border-color: var(--color-blue);
+    box-shadow: 0 20px 50px rgba(0, 123, 255, 0.12);
+}
+
+:root.light .faq-header h3 {
+    color: #1a1a1a;
+}
+
+:root.light .faq-body p {
+    color: #555;
+    font-weight: 500;
+}

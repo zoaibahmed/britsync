@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+feedparser
+beautifulsoup4
+requests
+sqlalchemy
+pydantic
+python-dateutil
+schedule
+Pillow
+python-dotenv
+google-generativeai

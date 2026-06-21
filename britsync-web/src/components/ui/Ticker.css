@@ -1,0 +1,90 @@
+.ticker-wrapper {
+    width: 100%;
+    overflow: hidden;
+    background: #050608;
+    padding: 3rem 0;
+    border-top: 1px solid rgba(0, 191, 255, 0.1);
+    border-bottom: 1px solid rgba(0, 191, 255, 0.1);
+    position: relative;
+    white-space: nowrap;
+    perspective: 1000px;
+}
+
+.ticker-wrapper::before,
+.ticker-wrapper::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.ticker-wrapper::before {
+    background: linear-gradient(90deg, #050608, transparent 20%, transparent 80%, #050608);
+}
+
+.ticker-wrapper::after {
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 191, 255, 0.03) 3px);
+    opacity: 0.5;
+}
+
+.ticker-content {
+    display: inline-flex;
+    align-items: center;
+    transform: rotateX(15deg) rotateY(-5deg) skewX(-10deg);
+    filter: drop-shadow(0 0 10px rgba(0, 191, 255, 0.2));
+}
+
+.ticker-item {
+    display: inline-flex;
+    align-items: center;
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-weight: 900;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    padding: 0 4rem;
+    opacity: 0.9;
+    background: linear-gradient(to bottom, #fff, var(--color-blue));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    transition: opacity 0.3s ease;
+}
+
+.ticker-dot {
+    margin-left: 6rem;
+    color: var(--color-blue);
+    opacity: 0.5;
+}
+
+:root.light .ticker-wrapper {
+    background: #f1f4f9;
+    background-image:
+        radial-gradient(at 0% 0%, rgba(0, 123, 255, 0.03) 0, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(0, 123, 255, 0.02) 0, transparent 50%);
+    border-top-color: rgba(0, 0, 0, 0.06);
+    border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+:root.light .ticker-wrapper::before {
+    background: linear-gradient(90deg, #f1f4f9, transparent 20%, transparent 80%, #f1f4f9);
+}
+
+:root.light .ticker-wrapper::after {
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.02) 3px);
+}
+
+:root.light .ticker-item {
+    background: linear-gradient(to bottom, #1a1a1a 40%, var(--color-blue));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    opacity: 1;
+    filter: drop-shadow(0 0 5px rgba(0, 123, 255, 0.05));
+}
+
+:root.light .ticker-dot {
+    color: var(--color-blue);
+    opacity: 0.3;
+}
