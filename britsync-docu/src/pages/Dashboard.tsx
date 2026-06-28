@@ -6,7 +6,7 @@ import {
     FileText, CheckCircle2, Clock, Plus, 
     FileUp, Activity, Eye, Download, ShieldCheck, Sparkles, 
     AlertCircle, Send, Check, PenTool, ArrowRight,
-    Cpu, TrendingUp, Workflow, Layers
+    Cpu, TrendingUp, Workflow, Layers, X
 } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
@@ -18,6 +18,10 @@ export const Dashboard: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [toast, setToast] = useState('');
     const [userRole, setUserRole] = useState(localStorage.getItem('docu_user_role') || 'member');
+    
+    // Signing Timeline modal
+    const [timelineDoc, setTimelineDoc] = useState<any>(null);
+    const [showTimelineModal, setShowTimelineModal] = useState(false);
     
     // Cloud integration states
     const [cloudConnections, setCloudConnections] = useState<any>({
@@ -454,6 +458,7 @@ export const Dashboard: React.FC = () => {
                                         <thead>
                                             <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', textAlign: 'left' }}>
                                                 <th style={{ padding: '0.5rem' }}>Name</th>
+                                                <th style={{ padding: '0.5rem' }}>Signers</th>
                                                 <th style={{ padding: '0.5rem' }}>Status</th>
                                                 <th style={{ padding: '0.5rem', textAlign: 'right' }}>Actions</th>
                                             </tr>
@@ -463,7 +468,30 @@ export const Dashboard: React.FC = () => {
                                                 <tr key={doc._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                                     <td style={{ fontWeight: 800, padding: '0.6rem 0.5rem', color: '#0f172a', maxWidth: '140px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={doc.document_name}>{doc.document_name}</td>
                                                     <td style={{ padding: '0.6rem 0.5rem' }}>
-                                                        <span className={`badge badge-${doc.status}`} style={{ fontSize: '0.6rem', padding: '2px 6px', textTransform: 'uppercase' }}>{doc.status}</span>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                            {doc.recipients?.filter((r: any) => r.role === 'signer').map((r: any, idx: number) => {
+                                                                const isSigned = r.status === 'completed';
+                                                                const isDeclined = r.status === 'declined';
+                                                                const isActive = ['sent', 'viewed'].includes(r.status);
+                                                                const statusColor = isSigned ? '#10b981' : isDeclined ? '#ef4444' : isActive ? '#3b82f6' : '#94a3b8';
+                                                                return (
+                                                                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', flexWrap: 'wrap' }}>
+                                                                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: statusColor, flexShrink: 0 }} />
+                                                                        <span style={{ color: isSigned ? '#10b981' : isDeclined ? '#ef4444' : '#475569', fontWeight: isSigned ? 700 : 500 }}>
+                                                                            {r.name}
+                                                                        </span>
+                                                                        {isSigned && r.completed_at && (
+                                                                            <span style={{ fontSize: '0.65rem', color: '#10b981', background: '#ecfdf5', padding: '1px 5px', borderRadius: '4px', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                                                                                {new Date(r.completed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} {new Date(r.completed_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            }) || <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>None</span>}
+                                                        </div>
+                                                    </td>
+                                                    <td style={{ padding: '0.6rem 0.5rem' }}>
+                                                        <span className={`badge badge-${doc.status}`} style={{ fontSize: '0.65rem', padding: '2px 6px', textTransform: 'uppercase' }}>{doc.status}</span>
                                                     </td>
                                                     <td style={{ textAlign: 'right', padding: '0.6rem 0.5rem' }}>
                                                         <div style={{ display: 'inline-flex', gap: '0.25rem' }}>
@@ -474,6 +502,11 @@ export const Dashboard: React.FC = () => {
                                                                 <a href={doc.final_file_url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={{ padding: '0.25rem 0.45rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }} title="Download Signed PDF">
                                                                     <Download size={12} />
                                                                 </a>
+                                                            )}
+                                                            {doc.recipients?.length > 0 && (
+                                                                <button className="btn btn-secondary" style={{ padding: '0.25rem 0.45rem', borderRadius: '4px', color: '#7c3aed' }} onClick={() => { setTimelineDoc(doc); setShowTimelineModal(true); }} title="Signing Timeline">
+                                                                    <Clock size={12} />
+                                                                </button>
                                                             )}
                                                         </div>
                                                     </td>
@@ -568,6 +601,114 @@ export const Dashboard: React.FC = () => {
                 </div>
 
             </div>
+
+            {/* Signing Timeline Modal */}
+            {showTimelineModal && timelineDoc && (
+                <div className="modal-overlay" style={{ zIndex: 10000 }}>
+                    <div className="modal-container" style={{ maxWidth: '580px', borderRadius: '16px' }}>
+                        <div className="modal-header">
+                            <div>
+                                <h2 style={{ fontSize: '1.1rem', fontWeight: 900 }}>Signing Timeline</h2>
+                                <span style={{ color: '#64748b', fontSize: '0.75rem', display: 'block', marginTop: '4px' }}>{timelineDoc.document_name}</span>
+                            </div>
+                            <button className="close-btn" onClick={() => setShowTimelineModal(false)}>
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="modal-body" style={{ padding: '1.5rem', color: '#0f172a' }}>
+                            {/* Document metadata */}
+                            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+                                <div style={{ flex: 1, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.75rem 1rem', textAlign: 'left' }}>
+                                    <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>Sent On</div>
+                                    <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#0f172a' }}>{timelineDoc.sent_at ? new Date(timelineDoc.sent_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</div>
+                                </div>
+                                <div style={{ flex: 1, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.75rem 1rem', textAlign: 'left' }}>
+                                    <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>Signing Mode</div>
+                                    <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#0f172a' }}>{timelineDoc.signing_order_enabled ? '🔢 Sequential' : '🔀 Parallel'}</div>
+                                </div>
+                                <div style={{ flex: 1, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.75rem 1rem', textAlign: 'left' }}>
+                                    <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>Expires</div>
+                                    <div style={{ fontWeight: 700, fontSize: '0.85rem', color: timelineDoc.expires_at && new Date(timelineDoc.expires_at) < new Date() ? '#ef4444' : '#0f172a' }}>
+                                        {timelineDoc.expires_at ? new Date(timelineDoc.expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Signing Progress Bar */}
+                            {(() => {
+                                const signers = timelineDoc.recipients?.filter((r: any) => r.role === 'signer') || [];
+                                const completed = signers.filter((r: any) => r.status === 'completed').length;
+                                const pct = signers.length > 0 ? Math.round((completed / signers.length) * 100) : 0;
+                                return (
+                                    <div style={{ marginBottom: '1.5rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>Signing Progress</span>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#2563eb' }}>{completed} / {signers.length} signed</span>
+                                        </div>
+                                        <div style={{ height: '6px', background: '#f1f5f9', borderRadius: '99px', overflow: 'hidden' }}>
+                                            <div style={{ height: '100%', width: `${pct}%`, background: pct === 100 ? '#10b981' : '#2563eb', borderRadius: '99px', transition: 'width 0.3s ease' }} />
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
+                            {/* Recipient Timeline */}
+                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem', textAlign: 'left' }}>Recipients</div>
+                            <div style={{ position: 'relative' }}>
+                                {[...(timelineDoc.recipients || [])]
+                                    .sort((a: any, b: any) => a.signing_order - b.signing_order)
+                                    .map((r: any, idx: number, arr: any[]) => {
+                                        const statusColor = r.status === 'completed' ? '#10b981' : r.status === 'sent' || r.status === 'viewed' ? '#2563eb' : r.status === 'declined' ? '#ef4444' : '#94a3b8';
+                                        const statusBg = r.status === 'completed' ? '#dcfce7' : r.status === 'sent' || r.status === 'viewed' ? '#dbeafe' : r.status === 'declined' ? '#fee2e2' : '#f1f5f9';
+                                        const statusLabel = r.status === 'completed' ? '✓ Signed' : r.status === 'viewed' ? '👁 Viewing' : r.status === 'sent' ? '📧 Email Sent' : r.status === 'declined' ? '✗ Declined' : '⏳ Waiting';
+                                        return (
+                                            <div key={idx} style={{ display: 'flex', gap: '1rem', paddingBottom: idx < arr.length - 1 ? '1.5rem' : 0, position: 'relative' }}>
+                                                {/* Timeline line */}
+                                                {idx < arr.length - 1 && (
+                                                    <div style={{ position: 'absolute', left: '15px', top: '32px', width: '2px', height: 'calc(100% - 8px)', background: r.status === 'completed' ? '#d1fae5' : '#e2e8f0' }} />
+                                                )}
+                                                {/* Circle */}
+                                                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: statusBg, border: `2px solid ${statusColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '0.7rem', fontWeight: 800, color: statusColor, zIndex: 1 }}>
+                                                    {r.role === 'cc' ? 'CC' : r.signing_order}
+                                                </div>
+                                                {/* Content */}
+                                                <div style={{ flex: 1, paddingTop: '4px', textAlign: 'left' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                                                        <div>
+                                                            <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.85rem' }}>{r.name}</div>
+                                                            <div style={{ color: '#94a3b8', fontSize: '0.72rem' }}>{r.email}</div>
+                                                        </div>
+                                                        <span style={{ fontSize: '0.65rem', fontWeight: 800, background: statusBg, color: statusColor, padding: '2px 8px', borderRadius: '99px', whiteSpace: 'nowrap' }}>
+                                                            {statusLabel}
+                                                        </span>
+                                                    </div>
+                                                    {/* Timestamps */}
+                                                    <div style={{ marginTop: '6px', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                                                        {r.viewed_at && (
+                                                            <span style={{ fontSize: '0.7rem', color: '#64748b' }}>👁 Viewed: <strong>{new Date(r.viewed_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</strong></span>
+                                                        )}
+                                                        {r.completed_at && (
+                                                            <span style={{ fontSize: '0.7rem', color: '#10b981' }}>✓ Signed: <strong>{new Date(r.completed_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</strong></span>
+                                                        )}
+                                                        {!r.viewed_at && !r.completed_at && r.status === 'sent' && (
+                                                            <span style={{ fontSize: '0.7rem', color: '#64748b' }}>📧 Awaiting action...</span>
+                                                        )}
+                                                        {r.status === 'pending' && (
+                                                            <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Will be notified after previous signer</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                            </div>
+                        </div>
+                        <div className="modal-footer" style={{ background: '#f8fafc' }}>
+                            <button className="btn btn-secondary" style={{ borderRadius: '6px' }} onClick={() => setShowTimelineModal(false)}>Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Toast feedback */}
             {toast && (

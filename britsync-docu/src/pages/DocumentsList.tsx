@@ -396,13 +396,27 @@ export const DocumentsList: React.FC = () => {
                                                 )}
                                                 <td style={{ fontWeight: 800, color: '#0f172a' }}>{doc.document_name}</td>
                                                 <td>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                        {doc.recipients?.map((r: any, idx: number) => (
-                                                            <span key={idx} style={{ color: '#475569', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                                <User size={11} style={{ opacity: 0.6 }} /> {r.name}
-                                                            </span>
-                                                        )) || <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>None</span>}
-                                                    </div>
+                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                         {doc.recipients?.filter((r: any) => r.role === 'signer').map((r: any, idx: number) => {
+                                                             const isSigned = r.status === 'completed';
+                                                             const isDeclined = r.status === 'declined';
+                                                             const isActive = ['sent', 'viewed'].includes(r.status);
+                                                             const statusColor = isSigned ? '#10b981' : isDeclined ? '#ef4444' : isActive ? '#3b82f6' : '#94a3b8';
+                                                             return (
+                                                                 <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', flexWrap: 'wrap' }}>
+                                                                     <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: statusColor, flexShrink: 0 }} />
+                                                                     <span style={{ color: isSigned ? '#10b981' : isDeclined ? '#ef4444' : '#475569', fontWeight: isSigned ? 700 : 500 }}>
+                                                                         {r.name}
+                                                                     </span>
+                                                                     {isSigned && r.completed_at && (
+                                                                         <span style={{ fontSize: '0.65rem', color: '#10b981', background: '#ecfdf5', padding: '1px 5px', borderRadius: '4px', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                                                                             {new Date(r.completed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} {new Date(r.completed_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                                                                         </span>
+                                                                     )}
+                                                                 </div>
+                                                             );
+                                                         }) || <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>None</span>}
+                                                     </div>
                                                 </td>
                                                 <td>
                                                     <span className={`badge badge-${doc.status}`} style={{ fontSize: '0.65rem', textTransform: 'uppercase' }}>{doc.status}</span>

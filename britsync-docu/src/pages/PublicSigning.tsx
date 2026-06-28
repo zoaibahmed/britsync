@@ -226,6 +226,30 @@ export const PublicSigning: React.FC = () => {
 
     const remainingRequired = getRemainingRequiredFields();
 
+    const getFormatValidationErrors = (): PlacedField[] => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const phoneRegex = /^\+?[0-9\s\-()]{7,20}$/;
+
+        return fields.filter(f => {
+            const isMyField = f.assigned_recipient_id === recipient?._id || f.assigned_recipient_id === recipient?.email;
+            if (!isMyField) return false;
+
+            const val = (f.value || '').trim();
+            if (!val) return false;
+
+            if (f.field_type === 'email') {
+                return !emailRegex.test(val);
+            }
+            if (f.field_type === 'phone') {
+                return !phoneRegex.test(val);
+            }
+            if (f.field_type === 'number') {
+                return isNaN(Number(val));
+            }
+            return false;
+        });
+    };
+
     const handleGoToNextRequired = () => {
         if (remainingRequired.length > 0) {
             const nextFieldId = remainingRequired[0]._id;
@@ -248,6 +272,27 @@ export const PublicSigning: React.FC = () => {
             setValidationErrors(remainingRequired.map(f => f._id));
             alert(`Please complete all required fields (${remainingRequired.length} remaining).`);
             handleGoToNextRequired();
+            return;
+        }
+
+        const formatErrors = getFormatValidationErrors();
+        if (formatErrors.length > 0) {
+            setValidationErrors(formatErrors.map(f => f._id));
+            const errorLabels = formatErrors.map(f => {
+                const typeLabel = f.field_type === 'email' ? 'email address' : f.field_type === 'phone' ? 'phone number' : 'number';
+                return `"${f.label || f.placeholder || f.field_type}" (must be a valid ${typeLabel})`;
+            }).join(', ');
+            alert(`Please enter the correct format for: ${errorLabels}`);
+
+            const firstErrFieldId = formatErrors[0]._id;
+            const el = document.getElementById(`field-wrapper-${firstErrFieldId}`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.style.outline = '3px solid #ef4444';
+                setTimeout(() => {
+                    el.style.outline = 'none';
+                }, 1500);
+            }
             return;
         }
 
@@ -772,18 +817,12 @@ const SigningPageContainer: React.FC<SigningPageProps> = ({
                         field.assigned_recipient_id === 'all';
                     const isError = validationErrors.includes(field._id);
                     
-                    let isEmpty = false;
-                    if (['user_signature', 'initials', 'stamp'].includes(field.field_type)) {
-                        isEmpty = !field.signature_data;
-                    } else {
-                        isEmpty = !field.value?.trim();
-                    }
 
                     const borderStyle = isMyField
-                        ? (isError && isEmpty ? '2px solid #ef4444' : `1.5px solid ${brandColor}`)
+                        ? (isError ? '2px solid #ef4444' : `1.5px solid ${brandColor}`)
                         : '1px dashed #cbd5e1';
                     const bgStyle = isMyField
-                        ? (isError && isEmpty ? 'rgba(239, 68, 68, 0.08)' : 'rgba(37, 99, 235, 0.04)')
+                        ? (isError ? 'rgba(239, 68, 68, 0.08)' : 'rgba(37, 99, 235, 0.04)')
                         : 'rgba(241, 245, 249, 0.4)';
 
                     return (
