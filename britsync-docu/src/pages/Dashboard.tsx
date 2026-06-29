@@ -18,6 +18,7 @@ export const Dashboard: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [toast, setToast] = useState('');
     const [userRole, setUserRole] = useState(localStorage.getItem('docu_user_role') || 'member');
+    const [pendingRequests, setPendingRequests] = useState<any[]>([]);
     
     // Signing Timeline modal
     const [timelineDoc, setTimelineDoc] = useState<any>(null);
@@ -47,6 +48,9 @@ export const Dashboard: React.FC = () => {
                 if (userRes && userRes.role) {
                     setUserRole(userRes.role);
                     localStorage.setItem('docu_user_role', userRes.role);
+                }
+                if (userRes && userRes.pendingRequests) {
+                    setPendingRequests(userRes.pendingRequests);
                 }
             } catch (err) {
                 console.error('Failed to load dashboard data:', err);
@@ -175,6 +179,70 @@ export const Dashboard: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Pending Workspace Requests Alert */}
+            {pendingRequests.length > 0 && (
+                <div style={{
+                    background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+                    border: '1px solid #fde68a',
+                    borderRadius: '16px',
+                    padding: '1.25rem 1.5rem',
+                    marginBottom: '2rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '1rem',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            background: '#f59e0b',
+                            color: 'white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}>
+                            <Clock size={20} />
+                        </div>
+                        <div>
+                            <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: '#92400e' }}>
+                                Pending Join Request
+                            </h4>
+                            <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#b45309' }}>
+                                Your request to join the workspace <strong>"{pendingRequests[0].workspace_id?.name}"</strong> is currently pending administrator approval. You are using your Personal Workspace in the meantime.
+                            </p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={async () => {
+                            if (window.confirm('Are you sure you want to cancel your request to join this workspace?')) {
+                                try {
+                                    await apiCall(`workspaces/join-request/${pendingRequests[0]._id}`, { method: 'DELETE' });
+                                    window.location.reload();
+                                } catch (err: any) {
+                                    alert(err.message || 'Failed to cancel request');
+                                }
+                            }
+                        }}
+                        style={{
+                            background: 'white',
+                            border: '1px solid #f59e0b',
+                            borderRadius: '8px',
+                            padding: '6px 12px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            color: '#b45309',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        Cancel Request
+                    </button>
+                </div>
+            )}
 
             {/* Bento Layout Operations Deck */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>

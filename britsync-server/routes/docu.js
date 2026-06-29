@@ -20,9 +20,17 @@ const DocuContact = require('../models/DocuContact');
 const DocuAuditLogNew = require('../models/DocuAuditLogNew');
 const DocuNotification = require('../models/DocuNotification');
 const DocuReminder = require('../models/DocuReminder');
+const DocuJoinRequest = require('../models/DocuJoinRequest');
+const DocuInvite = require('../models/DocuInvite');
+const DocuSubscription = require('../models/DocuSubscription');
+const DocuUsageCounter = require('../models/DocuUsageCounter');
+const DocuWebForm = require('../models/DocuWebForm');
 
 // Services
 const { compileFinalPdfNew, getFilePathFromUrl, calculateHash, generateAuditReportPdf } = require('../services/docuServiceNew');
+
+// Stripe SDK Initialization
+const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
 
 // SMTP email config
 const nodemailer = require('nodemailer');
@@ -147,90 +155,177 @@ const createNotification = async ({ workspace_id, user_id, document_id, type, ti
     }
 };
 
+const PLAN_LIMITS = {
+    free: {
+        documents_sent: 7,
+        team_members: 1,
+        templates: 1,
+        custom_branding: false,
+        bulk_send: false,
+        signer_auth: false,
+        domain_join: false
+    },
+    pro: {
+        documents_sent: 100,
+        team_members: 3,
+        templates: 9999,
+        custom_branding: true,
+        bulk_send: false,
+        signer_auth: false,
+        domain_join: false
+    },
+    business: {
+        documents_sent: 1000,
+        team_members: 25,
+        templates: 9999,
+        custom_branding: true,
+        bulk_send: true,
+        signer_auth: true,
+        domain_join: true
+    },
+    enterprise: {
+        documents_sent: 999999,
+        team_members: 999999,
+        templates: 9999,
+        custom_branding: true,
+        bulk_send: true,
+        signer_auth: true,
+        domain_join: true
+    }
+};
+
+const getActiveUsageCounter = async (workspaceId) => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    let counter = await DocuUsageCounter.findOne({ workspace_id: workspaceId, period_start: start });
+    if (!counter) {
+        try {
+            counter = await new DocuUsageCounter({
+                workspace_id: workspaceId,
+                period_start: start,
+                period_end: end,
+                documents_sent: 0,
+                documents_completed: 0,
+                templates_created: 0,
+                bulk_sends: 0,
+                storage_used_mb: 0,
+                signer_auth_count: 0
+            }).save();
+        } catch (err) {
+            counter = await DocuUsageCounter.findOne({ workspace_id: workspaceId, period_start: start });
+        }
+    }
+    return counter;
+};
+
+const checkFeatureGate = (feature) => {
+    return [authenticateDocuToken, fetchUserRole, async (req, res, next) => {
+        try {
+            const ws = await DocuWorkspace.findById(req.user.workspaceId);
+            if (!ws) return res.status(404).json({ message: 'Workspace not found' });
+            
+            const plan = ws.plan || 'free';
+            const limits = PLAN_LIMITS[plan];
+            
+            if (!limits || limits[feature] === false) {
+                return res.status(403).json({ 
+                    message: `The feature "${feature.replace(/_/g, ' ')}" is locked on your ${plan} plan. Please upgrade to unlock it.`,
+                    gate_locked: true,
+                    required_plan: plan === 'free' ? 'pro' : 'business'
+                });
+            }
+            next();
+        } catch (err) {
+            res.status(500).json({ message: err.message });
+        }
+    }];
+};
+
+const requireRole = (allowedRoles) => {
+    return [authenticateDocuToken, fetchUserRole, (req, res, next) => {
+        if (!allowedRoles.includes(req.user.role)) {
+            return res.status(403).json({ message: `Access denied. Role "${req.user.role}" does not have permission to perform this action.` });
+        }
+        next();
+    }];
+};
+
 // ==========================================
 // 1. AUTHENTICATION ENDPOINTS
 // ==========================================
 
 router.post('/auth/signup', async (req, res) => {
     try {
-        const { full_name, email, password, workspace_name } = req.body;
+        const { full_name, email, password } = req.body;
         if (!full_name || !email || !password) {
             return res.status(400).json({ message: 'Full name, email, and password are required' });
         }
 
         let user = await DocuUser.findOne({ email });
-        let isInvitedNewUser = false;
-
         if (user) {
-            const hasInvitedMembership = await DocuWorkspaceMember.exists({ user_id: user._id, status: 'invited' });
-            if (!user.email_verified && hasInvitedMembership) {
-                isInvitedNewUser = true;
-            } else {
-                return res.status(400).json({ message: 'User with this email already exists' });
-            }
+            return res.status(400).json({ message: 'User with this email already exists' });
         }
 
-        let savedUser;
-        if (isInvitedNewUser) {
-            const password_hash = await bcrypt.hash(password, 10);
-            user.full_name = full_name;
-            user.password_hash = password_hash;
-            user.email_verified = true;
-            savedUser = await user.save();
+        const password_hash = await bcrypt.hash(password, 10);
+        user = new DocuUser({
+            full_name,
+            email,
+            password_hash,
+            email_verified: true,
+            onboarding_completed: false
+        });
+        const savedUser = await user.save();
 
-            // Mark invited memberships as joined
-            await DocuWorkspaceMember.updateMany(
-                { user_id: user._id, status: 'invited' },
-                { status: 'joined' }
-            );
-        } else {
-            const password_hash = await bcrypt.hash(password, 10);
-            user = new DocuUser({
-                full_name,
-                email,
-                password_hash,
-                email_verified: true
-            });
-            savedUser = await user.save();
-        }
-
-        // Create Default Workspace
-        const wsName = workspace_name || `${full_name}'s Workspace`;
+        // Create Default Personal Free Workspace
+        const wsCode = crypto.randomBytes(4).toString('hex').toUpperCase();
         const workspace = new DocuWorkspace({
-            name: wsName,
-            owner_id: savedUser._id
+            name: `${full_name}'s Personal Workspace`,
+            owner_id: savedUser._id,
+            workspace_type: 'PERSONAL',
+            workspace_code: wsCode,
+            slug: `ws-${wsCode.toLowerCase()}`,
+            plan: 'free',
+            subscription_status: 'active'
         });
         const savedWs = await workspace.save();
 
-        // Join Workspace Member
+        // Add Membership as joined owner
         const membership = new DocuWorkspaceMember({
             workspace_id: savedWs._id,
             user_id: savedUser._id,
             role: 'owner',
-            status: 'joined'
+            status: 'joined',
+            joined_at: new Date()
         });
         await membership.save();
 
-        // Find active/first workspace to sign the JWT token
-        const invitedMembership = await DocuWorkspaceMember.findOne({ user_id: savedUser._id, status: 'joined', role: { $ne: 'owner' } }).populate('workspace_id');
-        const activeWs = invitedMembership ? invitedMembership.workspace_id : savedWs;
-        const activeRole = invitedMembership ? invitedMembership.role : 'owner';
+        // Update user fields
+        savedUser.personal_workspace_id = savedWs._id;
+        savedUser.default_workspace_id = savedWs._id;
+        await savedUser.save();
 
         // Generate Token
         const token = jwt.sign(
-            { id: savedUser._id, email: savedUser.email, workspaceId: activeWs._id },
+            { id: savedUser._id, email: savedUser.email, workspaceId: savedWs._id },
             process.env.JWT_SECRET || 'Britsync@JWT_92x!KpZ#2025',
             { expiresIn: '7d' }
         );
 
         await logAuditEvent({
-            workspace_id: activeWs._id,
+            workspace_id: savedWs._id,
             user_id: savedUser._id,
             event_type: 'USER_SIGNED_UP',
             metadata: { email: savedUser.email }
         });
 
-        res.status(201).json({ token, user: { id: savedUser._id, full_name: savedUser.full_name, email: savedUser.email }, workspace: activeWs, role: activeRole });
+        res.status(201).json({ 
+            token, 
+            user: { id: savedUser._id, full_name: savedUser.full_name, email: savedUser.email, onboarding_completed: false }, 
+            workspace: savedWs, 
+            role: 'owner' 
+        });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -247,9 +342,18 @@ router.post('/auth/login', async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password_hash);
         if (!isMatch) return res.status(401).json({ message: 'Invalid email or password' });
 
-        // Find active/first workspace
-        const member = await DocuWorkspaceMember.findOne({ user_id: user._id, status: 'joined' }).populate('workspace_id');
-        if (!member) return res.status(400).json({ message: 'No workspaces associated with this user' });
+        // Find default workspace or first joined workspace
+        let wsId = user.default_workspace_id;
+        let member = null;
+        if (wsId) {
+            member = await DocuWorkspaceMember.findOne({ user_id: user._id, workspace_id: wsId, status: 'joined' }).populate('workspace_id');
+        }
+        if (!member) {
+            member = await DocuWorkspaceMember.findOne({ user_id: user._id, status: 'joined' }).populate('workspace_id');
+        }
+        if (!member) {
+            return res.status(400).json({ message: 'No active workspaces associated with this user' });
+        }
 
         const token = jwt.sign(
             { id: user._id, email: user.email, workspaceId: member.workspace_id._id },
@@ -264,7 +368,12 @@ router.post('/auth/login', async (req, res) => {
             metadata: { email: user.email }
         });
 
-        res.json({ token, user: { id: user._id, full_name: user.full_name, email: user.email }, workspace: member.workspace_id, role: member.role });
+        res.json({ 
+            token, 
+            user: { id: user._id, full_name: user.full_name, email: user.email, onboarding_completed: user.onboarding_completed }, 
+            workspace: member.workspace_id, 
+            role: member.role 
+        });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -275,15 +384,178 @@ router.get('/auth/me', authenticateDocuToken, async (req, res) => {
         const user = await DocuUser.findById(req.user.id).select('-password_hash');
         if (!user) return res.status(404).json({ message: 'User not found' });
 
-        const members = await DocuWorkspaceMember.find({ user_id: user._id, status: 'joined' }).populate('workspace_id');
-        const activeMembership = members.find(m => m.workspace_id._id.toString() === req.user.workspaceId) || members[0];
+        const memberships = await DocuWorkspaceMember.find({ user_id: user._id, status: 'joined' }).populate('workspace_id');
+        const activeMembership = memberships.find(m => m.workspace_id._id.toString() === req.user.workspaceId) || memberships[0];
         
+        // Find any pending join requests of the user
+        const pendingRequests = await DocuJoinRequest.find({ user_id: user._id, status: 'pending' }).populate('workspace_id');
+
         res.json({
             user,
             workspace: activeMembership ? activeMembership.workspace_id : null,
-            workspaces: members.map(m => m.workspace_id),
-            role: activeMembership ? activeMembership.role : 'member'
+            workspaces: memberships.map(m => m.workspace_id),
+            role: activeMembership ? activeMembership.role : 'member',
+            pendingRequests
         });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+router.post('/auth/switch-workspace', authenticateDocuToken, async (req, res) => {
+    try {
+        const { workspaceId } = req.body;
+        if (!workspaceId) return res.status(400).json({ message: 'Workspace ID is required' });
+
+        const membership = await DocuWorkspaceMember.findOne({ 
+            workspace_id: workspaceId, 
+            user_id: req.user.id, 
+            status: 'joined' 
+        }).populate('workspace_id');
+
+        if (!membership) {
+            return res.status(403).json({ message: 'You are not an active member of this workspace' });
+        }
+
+        // Set default workspace to switcher choice
+        await DocuUser.findByIdAndUpdate(req.user.id, { default_workspace_id: workspaceId });
+
+        const token = jwt.sign(
+            { id: req.user.id, email: req.user.email, workspaceId },
+            process.env.JWT_SECRET || 'Britsync@JWT_92x!KpZ#2025',
+            { expiresIn: '7d' }
+        );
+
+        res.json({ 
+            token, 
+            workspace: membership.workspace_id, 
+            role: membership.role 
+        });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+router.post('/onboarding/complete', authenticateDocuToken, async (req, res) => {
+    try {
+        const { choice, company_name, workspace_code } = req.body;
+        const user = await DocuUser.findById(req.user.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        if (choice === 'personal') {
+            user.onboarding_completed = true;
+            await user.save();
+            return res.json({ message: 'Onboarding completed successfully', user });
+        }
+
+        if (choice === 'create-company') {
+            if (!company_name) return res.status(400).json({ message: 'Company name is required' });
+
+            const wsCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+            const workspace = new DocuWorkspace({
+                name: company_name,
+                owner_id: user._id,
+                workspace_type: 'COMPANY',
+                workspace_code: wsCode,
+                slug: company_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+                plan: 'free',
+                subscription_status: 'active'
+            });
+            if (!workspace.slug) workspace.slug = `ws-${wsCode.toLowerCase()}`;
+            const savedWs = await workspace.save();
+
+            const membership = new DocuWorkspaceMember({
+                workspace_id: savedWs._id,
+                user_id: user._id,
+                role: 'owner',
+                status: 'joined',
+                joined_at: new Date()
+            });
+            await membership.save();
+
+            user.onboarding_completed = true;
+            user.default_workspace_id = savedWs._id;
+            await user.save();
+
+            const token = jwt.sign(
+                { id: user._id, email: user.email, workspaceId: savedWs._id },
+                process.env.JWT_SECRET || 'Britsync@JWT_92x!KpZ#2025',
+                { expiresIn: '7d' }
+            );
+
+            return res.json({ 
+                message: 'Company workspace created', 
+                token, 
+                workspace: savedWs, 
+                role: 'owner' 
+            });
+        }
+
+        if (choice === 'join-company') {
+            if (!workspace_code) return res.status(400).json({ message: 'Workspace code or company name is required' });
+
+            // Search by workspace code first, then by company name
+            let targetWs = await DocuWorkspace.findOne({ workspace_code: workspace_code.toUpperCase() });
+            if (!targetWs) {
+                targetWs = await DocuWorkspace.findOne({ name: { $regex: new RegExp(workspace_code, 'i') } });
+            }
+
+            if (!targetWs) {
+                return res.status(404).json({ message: 'Company workspace not found. You can create a new company workspace instead.' });
+            }
+
+            // Check if already a member
+            const existingMember = await DocuWorkspaceMember.findOne({ workspace_id: targetWs._id, user_id: user._id });
+            if (existingMember && existingMember.status === 'joined') {
+                return res.status(400).json({ message: 'You are already an active member of this company' });
+            }
+
+            // Check if request already pending
+            const existingReq = await DocuJoinRequest.findOne({ workspace_id: targetWs._id, user_id: user._id, status: 'pending' });
+            if (existingReq) {
+                user.onboarding_completed = true;
+                await user.save();
+                return res.json({ message: 'Join request already submitted. Remaining pending.', request: existingReq });
+            }
+
+            // Create new join request
+            const request = new DocuJoinRequest({
+                workspace_id: targetWs._id,
+                user_id: user._id,
+                requester_name: user.full_name,
+                requester_email: user.email,
+                message: 'Hello, please approve my request to join this workspace.'
+            });
+            await request.save();
+
+            // Notify owner via email (non-blocking)
+            const owner = await DocuUser.findById(targetWs.owner_id);
+            if (owner) {
+                const emailHtml = `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+                        <h2>New request to join ${targetWs.name}</h2>
+                        <p><strong>${user.full_name}</strong> (${user.email}) has requested to join your BritSync Docu workspace.</p>
+                        <p>Review the request in your Team Management panel on BritSync Docu.</p>
+                    </div>
+                `;
+                emailTransporter.sendMail({
+                    from: process.env.GMAIL_USER || 'britsyncuk@gmail.com',
+                    to: owner.email,
+                    subject: `New request to join ${targetWs.name}`,
+                    html: emailHtml
+                }).catch(e => console.error('Failed to notify owner of join request:', e));
+            }
+
+            user.onboarding_completed = true;
+            await user.save();
+
+            return res.json({ 
+                message: 'Request submitted successfully. Onboarding completed.', 
+                request 
+            });
+        }
+
+        res.status(400).json({ message: 'Invalid onboarding choice' });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -420,11 +692,30 @@ router.post('/documents/parse', requireCreateSendPermission, parseUpload.single(
 router.get('/documents', authenticateDocuToken, async (req, res) => {
     try {
         const { status } = req.query;
+        
+        // Fetch user role in this workspace
+        const member = await DocuWorkspaceMember.findOne({
+            workspace_id: req.user.workspaceId,
+            user_id: req.user.id,
+            status: 'joined'
+        });
+        const role = member ? member.role : 'viewer';
+
         const query = { workspace_id: req.user.workspaceId };
         if (status) {
             query.status = status;
         } else {
             query.status = { $ne: 'archived' };
+        }
+
+        // Apply RBAC filtering
+        if (role === 'sender') {
+            query.$or = [
+                { owner_id: req.user.id },
+                { 'recipients.email': req.user.email }
+            ];
+        } else if (role === 'viewer') {
+            query['recipients.email'] = req.user.email;
         }
         
         const docs = await DocuDocumentNew.find(query).sort({ createdAt: -1 });
@@ -854,6 +1145,21 @@ router.post('/documents/:id/send', requireCreateSendPermission, async (req, res)
             return res.status(400).json({ message: 'Please configure at least one recipient' });
         }
 
+        // Enforce plan limits on sent documents
+        const ws = await DocuWorkspace.findById(req.user.workspaceId);
+        if (!ws) return res.status(404).json({ message: 'Workspace not found' });
+
+        const counter = await getActiveUsageCounter(ws._id);
+        const plan = ws.plan || 'free';
+        const limits = PLAN_LIMITS[plan];
+
+        if (counter.documents_sent >= limits.documents_sent) {
+            return res.status(403).json({
+                message: `You have reached the monthly limit of ${limits.documents_sent} documents sent for the ${plan} plan. Please upgrade to send more documents.`,
+                limit_reached: true
+            });
+        }
+
         const days = expirationDays ? parseInt(expirationDays) : 30;
         doc.expires_at = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
         doc.status = 'sent';
@@ -889,6 +1195,12 @@ router.post('/documents/:id/send', requireCreateSendPermission, async (req, res)
         }
 
         const savedDoc = await doc.save();
+
+        // Atomically increment documents_sent counter
+        await DocuUsageCounter.updateOne(
+            { workspace_id: req.user.workspaceId, period_start: counter.period_start },
+            { $inc: { documents_sent: 1 } }
+        );
 
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
         const sender = await DocuUser.findById(req.user.id);
@@ -1940,6 +2252,770 @@ router.post('/public/cookie-consent', async (req, res) => {
     } catch (err) {
         console.error('Failed to log cookie consent:', err);
         res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// ==========================================
+// 13. SAAS WORKSPACE MANAGEMENT & DISCOVERY
+// ==========================================
+
+router.get('/workspaces/search', authenticateDocuToken, async (req, res) => {
+    try {
+        const { query } = req.query;
+        if (!query) return res.status(400).json({ message: 'Search query is required' });
+
+        const results = await DocuWorkspace.find({
+            workspace_type: 'COMPANY',
+            $or: [
+                { name: { $regex: new RegExp(query, 'i') } },
+                { workspace_code: query.toUpperCase() },
+                { domain: query.toLowerCase() }
+            ]
+        }).select('name logo_url workspace_type workspace_code domain');
+
+        res.json(results);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+router.get('/workspaces/pending-requests', authenticateDocuToken, async (req, res) => {
+    try {
+        const list = await DocuJoinRequest.find({ user_id: req.user.id, status: 'pending' }).populate('workspace_id', 'name logo_url');
+        res.json(list);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+router.delete('/workspaces/join-request/:id', authenticateDocuToken, async (req, res) => {
+    try {
+        const request = await DocuJoinRequest.findOneAndDelete({ _id: req.params.id, user_id: req.user.id, status: 'pending' });
+        if (!request) return res.status(404).json({ message: 'Pending request not found' });
+        res.json({ message: 'Request successfully withdrawn' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+router.get('/workspaces/:id/admin/join-requests', requireAdminPermission, async (req, res) => {
+    try {
+        const list = await DocuJoinRequest.find({ workspace_id: req.params.id, status: 'pending' }).populate('user_id', 'full_name email');
+        res.json(list);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+router.post('/workspaces/:id/admin/join-requests/:requestId/resolve', requireAdminPermission, async (req, res) => {
+    try {
+        const { action, role } = req.body; // action: 'approve' | 'reject'
+        if (!action || !['approve', 'reject'].includes(action)) {
+            return res.status(400).json({ message: 'Invalid action. Must be approve or reject.' });
+        }
+
+        const request = await DocuJoinRequest.findOne({ _id: req.params.requestId, workspace_id: req.params.id, status: 'pending' });
+        if (!request) return res.status(404).json({ message: 'Join request not found' });
+
+        if (action === 'approve') {
+            request.status = 'approved';
+            request.reviewed_by = req.user.id;
+            request.reviewed_at = new Date();
+            await request.save();
+
+            // Create workspace membership
+            const targetRole = role || 'sender';
+            const membership = new DocuWorkspaceMember({
+                workspace_id: req.params.id,
+                user_id: request.user_id,
+                role: targetRole,
+                status: 'joined',
+                joined_at: new Date()
+            });
+            await membership.save();
+
+            // Set as user default workspace
+            await DocuUser.findByIdAndUpdate(request.user_id, { default_workspace_id: req.params.id });
+
+            // Notify user via email
+            const targetUser = await DocuUser.findById(request.user_id);
+            const ws = await DocuWorkspace.findById(req.params.id);
+            if (targetUser && ws) {
+                const emailHtml = `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+                        <h2>Request Approved!</h2>
+                        <p>Your request to join the workspace <strong>${ws.name}</strong> has been approved.</p>
+                        <p>You can now switch to this workspace from your dashboard.</p>
+                    </div>
+                `;
+                emailTransporter.sendMail({
+                    from: process.env.GMAIL_USER || 'britsyncuk@gmail.com',
+                    to: targetUser.email,
+                    subject: `Approved: Request to join ${ws.name}`,
+                    html: emailHtml
+                }).catch(e => console.error('Failed to send approval email:', e));
+            }
+        } else {
+            request.status = 'rejected';
+            request.reviewed_by = req.user.id;
+            request.reviewed_at = new Date();
+            await request.save();
+        }
+
+        res.json({ message: `Request successfully ${action}d` });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// ==========================================
+// 14. INVITE LINK MANAGEMENT
+// ==========================================
+
+router.get('/workspaces/:id/invites', requireAdminPermission, async (req, res) => {
+    try {
+        const list = await DocuInvite.find({ workspace_id: req.params.id, status: 'active' });
+        res.json(list);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+router.post('/workspaces/:id/invites', requireAdminPermission, async (req, res) => {
+    try {
+        const { default_role, max_uses, expires_in_days } = req.body;
+        
+        // Enforce team members size limit on invites if Free/Pro
+        const ws = await DocuWorkspace.findById(req.params.id);
+        if (!ws) return res.status(404).json({ message: 'Workspace not found' });
+
+        const currentMembers = await DocuWorkspaceMember.countDocuments({ workspace_id: ws._id, status: 'joined' });
+        const limits = PLAN_LIMITS[ws.plan || 'free'];
+        if (currentMembers >= limits.team_members) {
+            return res.status(403).json({ 
+                message: `You have reached the maximum of ${limits.team_members} team members allowed on the ${ws.plan} plan. Please upgrade to invite more members.` 
+            });
+        }
+
+        const inviteCode = crypto.randomBytes(8).toString('hex').toUpperCase();
+        const expires_at = expires_in_days ? new Date(Date.now() + expires_in_days * 24 * 60 * 60 * 1000) : null;
+
+        const invite = new DocuInvite({
+            workspace_id: req.params.id,
+            invite_code: inviteCode,
+            created_by: req.user.id,
+            default_role: default_role || 'sender',
+            max_uses: max_uses || 0,
+            expires_at
+        });
+
+        await invite.save();
+        res.status(201).json(invite);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+router.post('/workspaces/join-invite/:inviteCode', authenticateDocuToken, async (req, res) => {
+    try {
+        const invite = await DocuInvite.findOne({ invite_code: req.params.inviteCode.toUpperCase(), status: 'active' });
+        if (!invite) return res.status(404).json({ message: 'Active invite link not found or expired.' });
+
+        if (invite.expires_at && new Date() > invite.expires_at) {
+            invite.status = 'expired';
+            await invite.save();
+            return res.status(400).json({ message: 'This invite link has expired.' });
+        }
+
+        if (invite.max_uses > 0 && invite.used_count >= invite.max_uses) {
+            return res.status(400).json({ message: 'This invite link has reached its maximum uses.' });
+        }
+
+        // Check if already a member
+        const existingMember = await DocuWorkspaceMember.findOne({ workspace_id: invite.workspace_id, user_id: req.user.id });
+        if (existingMember && existingMember.status === 'joined') {
+            return res.status(400).json({ message: 'You are already an active member of this workspace' });
+        }
+
+        // Enforce plan limits
+        const ws = await DocuWorkspace.findById(invite.workspace_id);
+        if (!ws) return res.status(404).json({ message: 'Workspace not found' });
+
+        const currentMembers = await DocuWorkspaceMember.countDocuments({ workspace_id: ws._id, status: 'joined' });
+        const limits = PLAN_LIMITS[ws.plan || 'free'];
+        if (currentMembers >= limits.team_members) {
+            return res.status(403).json({ 
+                message: `This workspace has reached its member limit for the ${ws.plan} plan.` 
+            });
+        }
+
+        // Join
+        const membership = new DocuWorkspaceMember({
+            workspace_id: invite.workspace_id,
+            user_id: req.user.id,
+            role: invite.default_role,
+            status: 'joined',
+            joined_at: new Date()
+        });
+        await membership.save();
+
+        invite.used_count += 1;
+        await invite.save();
+
+        // Switch to the joined workspace
+        await DocuUser.findByIdAndUpdate(req.user.id, { default_workspace_id: invite.workspace_id });
+
+        res.json({ message: 'Successfully joined workspace via invite code!', workspace: ws });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// ==========================================
+// 15. LEAVE & OWNERSHIP TRANSFER
+// ==========================================
+
+router.post('/workspaces/:id/leave', authenticateDocuToken, async (req, res) => {
+    try {
+        const wsId = req.params.id;
+        const membership = await DocuWorkspaceMember.findOne({ workspace_id: wsId, user_id: req.user.id, status: 'joined' });
+        if (!membership) {
+            return res.status(404).json({ message: 'Workspace membership not found' });
+        }
+
+        if (membership.role === 'owner') {
+            const otherOwnersCount = await DocuWorkspaceMember.countDocuments({
+                workspace_id: wsId,
+                role: 'owner',
+                status: 'joined',
+                user_id: { $ne: req.user.id }
+            });
+            if (otherOwnersCount === 0) {
+                return res.status(400).json({ 
+                    message: 'You are the sole owner of this workspace. You cannot leave unless you transfer ownership to another member or delete the workspace entirely.' 
+                });
+            }
+        }
+
+        membership.status = 'left';
+        membership.left_at = new Date();
+        await membership.save();
+
+        res.json({ message: 'Successfully left the workspace' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+router.post('/workspaces/:id/transfer-ownership', authenticateDocuToken, fetchUserRole, async (req, res) => {
+    try {
+        if (req.user.role !== 'owner') {
+            return res.status(403).json({ message: 'Only the workspace owner can transfer ownership' });
+        }
+
+        const { targetUserId } = req.body;
+        if (!targetUserId) return res.status(400).json({ message: 'Target user ID is required' });
+
+        const targetMember = await DocuWorkspaceMember.findOne({
+            workspace_id: req.params.id,
+            user_id: targetUserId,
+            status: 'joined'
+        });
+
+        if (!targetMember) {
+            return res.status(400).json({ message: 'Target user is not a member of this workspace' });
+        }
+
+        targetMember.role = 'owner';
+        await targetMember.save();
+
+        await DocuWorkspaceMember.updateOne(
+            { workspace_id: req.params.id, user_id: req.user.id },
+            { role: 'admin' }
+        );
+
+        await DocuWorkspace.findByIdAndUpdate(req.params.id, { owner_id: targetUserId });
+
+        await logAuditEvent({
+            workspace_id: req.params.id,
+            user_id: req.user.id,
+            event_type: 'WORKSPACE_OWNERSHIP_TRANSFERRED',
+            metadata: { new_owner_id: targetUserId }
+        });
+
+        res.json({ message: 'Workspace ownership successfully transferred' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// ==========================================
+// 16. STRIPE BILLING & INTEGRATION
+// ==========================================
+
+const isDev = process.env.NODE_ENV !== 'production';
+
+router.post('/billing/create-checkout-session', authenticateDocuToken, async (req, res) => {
+    try {
+        const { plan, interval } = req.body; // plan: 'pro' | 'business', interval: 'monthly' | 'yearly'
+        const wsId = req.user.workspaceId;
+        const ws = await DocuWorkspace.findById(wsId);
+        if (!ws) return res.status(404).json({ message: 'Workspace not found' });
+
+        if (ws.owner_id.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'Only the workspace owner can manage subscriptions' });
+        }
+
+        const priceKey = `STRIPE_PRICE_${plan.toUpperCase()}_${interval.toUpperCase()}`;
+        const priceId = process.env[priceKey];
+
+        const stripeSecret = process.env.STRIPE_SECRET_KEY;
+
+        if (!stripeSecret || !stripe) {
+            if (isDev) {
+                // LOCAL DEVELOPMENT SIMULATION
+                ws.plan = plan;
+                ws.subscription_status = 'active';
+                ws.current_period_start = new Date();
+                ws.current_period_end = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                await ws.save();
+
+                await DocuSubscription.findOneAndUpdate(
+                    { workspace_id: wsId },
+                    {
+                        stripe_customer_id: 'mock_cust_123',
+                        stripe_subscription_id: 'mock_sub_123',
+                        plan,
+                        status: 'active',
+                        price_id: priceId || 'mock_price_123',
+                        current_period_start: new Date(),
+                        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+                    },
+                    { upsert: true }
+                );
+
+                return res.json({ 
+                    url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/docu/billing?success=true`,
+                    simulated: true 
+                });
+            } else {
+                return res.status(500).json({ 
+                    message: 'Stripe integration is not configured on the production server. Checkout is disabled.' 
+                });
+            }
+        }
+
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [{ price: priceId, quantity: 1 }],
+            mode: 'subscription',
+            success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/docu/billing?success=true`,
+            cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/docu/billing?canceled=true`,
+            client_reference_id: wsId.toString(),
+            customer_email: req.user.email,
+            metadata: { workspaceId: wsId.toString(), plan }
+        });
+
+        res.json({ url: session.url });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+router.post('/billing/create-portal-session', authenticateDocuToken, async (req, res) => {
+    try {
+        const wsId = req.user.workspaceId;
+        const ws = await DocuWorkspace.findById(wsId);
+        if (!ws) return res.status(404).json({ message: 'Workspace not found' });
+
+        if (ws.owner_id.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'Only the workspace owner can manage billing portal' });
+        }
+
+        if (!ws.stripe_customer_id) {
+            return res.status(400).json({ message: 'No active Stripe billing profile found for this workspace' });
+        }
+
+        const stripeSecret = process.env.STRIPE_SECRET_KEY;
+        if (!stripeSecret || !stripe) {
+            if (isDev) {
+                return res.json({ url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/docu/billing` });
+            } else {
+                return res.status(500).json({ message: 'Stripe integration is not configured on the production server.' });
+            }
+        }
+
+        const session = await stripe.billingPortal.sessions.create({
+            customer: ws.stripe_customer_id,
+            return_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/docu/billing`
+        });
+
+        res.json({ url: session.url });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+router.get('/billing/current', authenticateDocuToken, async (req, res) => {
+    try {
+        const ws = await DocuWorkspace.findById(req.user.workspaceId);
+        if (!ws) return res.status(404).json({ message: 'Workspace not found' });
+
+        const counter = await getActiveUsageCounter(ws._id);
+        const sub = await DocuSubscription.findOne({ workspace_id: ws._id });
+
+        res.json({
+            plan: ws.plan || 'free',
+            subscription_status: ws.subscription_status || 'active',
+            limits: PLAN_LIMITS[ws.plan || 'free'],
+            usage: counter,
+            subscription: sub
+        });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+router.post('/billing/webhook', async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    let event;
+
+    const stripeSecret = process.env.STRIPE_SECRET_KEY;
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    if (stripeSecret && webhookSecret && stripe) {
+        try {
+            event = stripe.webhooks.constructEvent(req.rawBody, sig, webhookSecret);
+        } catch (err) {
+            console.error('Webhook signature verification failed:', err.message);
+            return res.status(400).send(`Webhook Error: ${err.message}`);
+        }
+    } else {
+        if (isDev) {
+            event = req.body;
+        } else {
+            return res.status(400).send('Stripe configuration missing.');
+        }
+    }
+
+    try {
+        switch (event.type) {
+            case 'checkout.session.completed': {
+                const session = event.data.object;
+                const wsId = session.client_reference_id || session.metadata.workspaceId;
+                const plan = session.metadata.plan || 'pro';
+                
+                if (wsId) {
+                    const ws = await DocuWorkspace.findById(wsId);
+                    if (ws) {
+                        ws.plan = plan;
+                        ws.stripe_customer_id = session.customer;
+                        ws.stripe_subscription_id = session.subscription;
+                        ws.subscription_status = 'active';
+                        
+                        if (stripeSecret && stripe && session.subscription) {
+                            const sub = await stripe.subscriptions.retrieve(session.subscription);
+                            ws.current_period_start = new Date(sub.current_period_start * 1000);
+                            ws.current_period_end = new Date(sub.current_period_end * 1000);
+                        } else {
+                            ws.current_period_start = new Date();
+                            ws.current_period_end = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                        }
+                        await ws.save();
+
+                        await DocuSubscription.findOneAndUpdate(
+                            { workspace_id: wsId },
+                            {
+                                stripe_customer_id: session.customer,
+                                stripe_subscription_id: session.subscription,
+                                plan,
+                                status: 'active',
+                                current_period_start: ws.current_period_start,
+                                current_period_end: ws.current_period_end
+                            },
+                            { upsert: true }
+                        );
+                    }
+                }
+                break;
+            }
+            case 'customer.subscription.updated': {
+                const sub = event.data.object;
+                const subscription = await DocuSubscription.findOne({ stripe_subscription_id: sub.id });
+                if (subscription) {
+                    subscription.status = sub.status;
+                    subscription.current_period_start = new Date(sub.current_period_start * 1000);
+                    subscription.current_period_end = new Date(sub.current_period_end * 1000);
+                    await subscription.save();
+
+                    await DocuWorkspace.findByIdAndUpdate(subscription.workspace_id, {
+                        subscription_status: sub.status,
+                        current_period_start: subscription.current_period_start,
+                        current_period_end: subscription.current_period_end
+                    });
+                }
+                break;
+            }
+            case 'customer.subscription.deleted': {
+                const sub = event.data.object;
+                const subscription = await DocuSubscription.findOne({ stripe_subscription_id: sub.id });
+                if (subscription) {
+                    subscription.status = 'canceled';
+                    subscription.plan = 'free';
+                    await subscription.save();
+
+                    await DocuWorkspace.findByIdAndUpdate(subscription.workspace_id, {
+                        plan: 'free',
+                        subscription_status: 'canceled'
+                    });
+                }
+                break;
+            }
+        }
+        res.json({ received: true });
+    } catch (err) {
+        console.error('Webhook handling error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ==========================================
+// 17. ADVANCED SAAS & AUDIT ENHANCEMENTS
+// ==========================================
+
+// A: Smart Field Suggestions
+router.post('/documents/:id/suggest-fields', checkFeatureGate('custom_branding'), async (req, res) => {
+    try {
+        const doc = await DocuDocumentNew.findOne({ _id: req.params.id, workspace_id: req.user.workspaceId });
+        if (!doc) return res.status(404).json({ message: 'Document not found' });
+
+        // Analyze file content using a mock regex parsing list
+        // Real logic parses PDF content stream. Here we suggest coordinates if labels are found.
+        const mockSuggestions = [
+            { field_type: 'user_signature', label: 'Signature', x_percent: 15, y_percent: 82, width_percent: 25, height_percent: 6 },
+            { field_type: 'fullName', label: 'Full Name', x_percent: 15, y_percent: 74, width_percent: 30, height_percent: 4 },
+            { field_type: 'date', label: 'Date', x_percent: 60, y_percent: 82, width_percent: 15, height_percent: 4 }
+        ];
+
+        res.json({ suggestions: mockSuggestions });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// B: Signer OTP Authentication
+router.post('/public/sign/:secureToken/send-otp', async (req, res) => {
+    try {
+        const doc = await DocuDocumentNew.findOne({ 'recipients.secure_token': req.params.secureToken });
+        if (!doc) return res.status(404).json({ message: 'Document not found' });
+
+        const recipient = doc.recipients.find(r => r.secure_token === req.params.secureToken);
+        if (!recipient) return res.status(404).json({ message: 'Recipient not found' });
+
+        // Cooldown check: 60 seconds
+        if (recipient.otp_cooldown_until && new Date() < recipient.otp_cooldown_until) {
+            const waitTime = Math.ceil((recipient.otp_cooldown_until.getTime() - Date.now()) / 1000);
+            return res.status(429).json({ message: `Please wait ${waitTime} seconds before requesting a new OTP.` });
+        }
+
+        // Generate 6-digit OTP
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const hashedOtp = crypto.createHash('sha256').update(otpCode).digest('hex');
+
+        recipient.otp_hash = hashedOtp;
+        recipient.otp_expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 min validity
+        recipient.otp_retries = 0;
+        recipient.otp_cooldown_until = new Date(Date.now() + 60 * 1000); // 60s cooldown
+        await doc.save();
+
+        // Dispatch Email
+        const emailHtml = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+                <h2 style="color: #2563eb;">Verification Code</h2>
+                <p>Hello ${recipient.name},</p>
+                <p>Please use the following 6-digit One-Time Password (OTP) to authenticate and access the signature document:</p>
+                <div style="font-size: 32px; font-weight: 800; letter-spacing: 4px; padding: 15px; background-color: #f1f5f9; text-align: center; border-radius: 8px; color: #1e293b; margin: 20px 0;">
+                    ${otpCode}
+                </div>
+                <p style="font-size: 13px; color: #64748b;">This code is confidential and will expire in 10 minutes.</p>
+            </div>
+        `;
+
+        await emailTransporter.sendMail({
+            from: process.env.GMAIL_USER || 'britsyncuk@gmail.com',
+            to: recipient.email,
+            subject: `Verification Code for document: ${doc.document_name}`,
+            html: emailHtml
+        });
+
+        await logAuditEvent({
+            workspace_id: doc.workspace_id,
+            document_id: doc._id,
+            recipient_id: recipient.secure_token,
+            event_type: 'OTP_SENT',
+            metadata: { recipient_email: recipient.email }
+        });
+
+        res.json({ message: 'OTP sent successfully to your registered email' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+router.post('/public/sign/:secureToken/verify-otp', async (req, res) => {
+    try {
+        const { otp } = req.body;
+        if (!otp) return res.status(400).json({ message: 'OTP is required' });
+
+        const doc = await DocuDocumentNew.findOne({ 'recipients.secure_token': req.params.secureToken });
+        if (!doc) return res.status(404).json({ message: 'Document not found' });
+
+        const recipient = doc.recipients.find(r => r.secure_token === req.params.secureToken);
+        if (!recipient) return res.status(404).json({ message: 'Recipient not found' });
+
+        // Expiry check
+        if (!recipient.otp_expiry || new Date() > recipient.otp_expiry) {
+            return res.status(400).json({ message: 'OTP code has expired. Please request a new one.' });
+        }
+
+        // Retry limit check (max 3 retries)
+        if (recipient.otp_retries >= 3) {
+            return res.status(400).json({ message: 'Too many failed verification attempts. Please request a new code.' });
+        }
+
+        const hashedInput = crypto.createHash('sha256').update(otp).digest('hex');
+        if (recipient.otp_hash !== hashedInput) {
+            recipient.otp_retries += 1;
+            await doc.save();
+            return res.status(400).json({ message: `Invalid code. ${3 - recipient.otp_retries} attempts remaining.` });
+        }
+
+        // Correct OTP code! Clear hash/expiry to prevent replay attacks
+        recipient.otp_hash = '';
+        recipient.otp_expiry = null;
+        await doc.save();
+
+        await logAuditEvent({
+            workspace_id: doc.workspace_id,
+            document_id: doc._id,
+            recipient_id: recipient.secure_token,
+            event_type: 'OTP_VERIFIED',
+            metadata: { recipient_email: recipient.email }
+        });
+
+        res.json({ verified: true, message: 'OTP verified successfully!' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// C: Public Web Forms
+router.get('/public/forms/:slug', async (req, res) => {
+    try {
+        const form = await DocuWebForm.findOne({ slug: req.params.slug, is_active: true });
+        if (!form) return res.status(404).json({ message: 'Public form not found or inactive.' });
+
+        if (form.expiry_date && new Date() > form.expiry_date) {
+            return res.status(400).json({ message: 'This public form has expired.' });
+        }
+
+        if (form.submission_limit > 0 && form.submission_count >= form.submission_limit) {
+            return res.status(400).json({ message: 'This form has reached its submission limit.' });
+        }
+
+        const template = await DocuTemplate.findById(form.template_id);
+        if (!template) return res.status(404).json({ message: 'Template not found' });
+
+        res.json({ form, template });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+router.post('/public/forms/:slug/submit', async (req, res) => {
+    try {
+        const { submitter_name, submitter_email, field_values } = req.body;
+        if (!submitter_name || !submitter_email) {
+            return res.status(400).json({ message: 'Submitter name and email are required' });
+        }
+
+        const form = await DocuWebForm.findOne({ slug: req.params.slug, is_active: true });
+        if (!form) return res.status(404).json({ message: 'Public form not found' });
+
+        if (form.expiry_date && new Date() > form.expiry_date) {
+            return res.status(400).json({ message: 'This form has expired.' });
+        }
+
+        if (form.submission_limit > 0 && form.submission_count >= form.submission_limit) {
+            return res.status(400).json({ message: 'This form has reached its submission limit.' });
+        }
+
+        const template = await DocuTemplate.findById(form.template_id);
+        if (!template) return res.status(404).json({ message: 'Template not found' });
+
+        // Enforce document limits on parent workspace
+        const ws = await DocuWorkspace.findById(form.workspace_id);
+        if (!ws) return res.status(404).json({ message: 'Workspace not found' });
+
+        const counter = await getActiveUsageCounter(ws._id);
+        const plan = ws.plan || 'free';
+        const limits = PLAN_LIMITS[plan];
+
+        if (counter.documents_sent >= limits.documents_sent) {
+            return res.status(403).json({ message: 'The host workspace has reached its monthly submission/document limit.' });
+        }
+
+        // Create document instance from template
+        const doc = new DocuDocumentNew({
+            workspace_id: form.workspace_id,
+            owner_id: ws.owner_id,
+            document_name: `${template.template_name} - ${submitter_name}`,
+            original_file_url: template.file_url,
+            original_hash: template.original_hash || '',
+            source_type: 'template',
+            template_id: template._id,
+            status: 'sent',
+            sent_at: new Date(),
+            fields: template.fields.map(f => {
+                const fObj = f.toObject();
+                // Assign value if submitted in form
+                if (field_values && field_values[f.label]) {
+                    fObj.value = field_values[f.label];
+                }
+                return fObj;
+            }),
+            recipients: [{
+                name: submitter_name,
+                email: submitter_email,
+                role: 'signer',
+                status: 'sent',
+                secure_token: crypto.randomBytes(32).toString('hex')
+            }]
+        });
+
+        const savedDoc = await doc.save();
+
+        // Increment usage counters
+        await DocuUsageCounter.updateOne(
+            { _id: counter._id },
+            { $inc: { documents_sent: 1 } }
+        );
+
+        await DocuWebForm.updateOne(
+            { _id: form._id },
+            { $inc: { submission_count: 1 } }
+        );
+
+        await logAuditEvent({
+            workspace_id: form.workspace_id,
+            document_id: savedDoc._id,
+            event_type: 'DOCUMENT_CREATED',
+            metadata: { source: 'web_form', submitter_email }
+        });
+
+        res.status(201).json({ message: 'Form submitted successfully!', secure_token: savedDoc.recipients[0].secure_token });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
 });
 

@@ -11,7 +11,11 @@ const RecipientSchema = new mongoose.Schema({
     signed_at: { type: Date },
     completed_at: { type: Date },
     ip_address: { type: String, default: '' },
-    user_agent: { type: String, default: '' }
+    user_agent: { type: String, default: '' },
+    otp_hash: { type: String, default: '' },
+    otp_expiry: { type: Date },
+    otp_retries: { type: Number, default: 0 },
+    otp_cooldown_until: { type: Date }
 }, { timestamps: true });
 
 const DocumentFieldSchema = new mongoose.Schema({

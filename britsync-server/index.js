@@ -56,7 +56,12 @@ app.use(cors({
 }));
 
 // Middleware
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+  limit: '10mb',
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Auth Middleware

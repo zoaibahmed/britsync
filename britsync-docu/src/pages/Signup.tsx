@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { apiCall } from '../utils/api';
-import { Mail, Lock, User, Briefcase, RefreshCw, AlertCircle, Eye, EyeOff, Check } from 'lucide-react';
+import { Mail, Lock, User, RefreshCw, AlertCircle, Eye, EyeOff, Check } from 'lucide-react';
 
 export const Signup: React.FC = () => {
     const navigate = useNavigate();
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [companyName, setCompanyName] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -23,7 +23,12 @@ export const Signup: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!fullName || !email || !password) return;
+        if (!fullName || !email || !password || !confirmPassword) return;
+
+        if (password !== confirmPassword) {
+            setError('Passwords do not match.');
+            return;
+        }
 
         setLoading(true);
         setError('');
@@ -33,8 +38,7 @@ export const Signup: React.FC = () => {
                 body: { 
                     full_name: fullName, 
                     email, 
-                    password,
-                    workspace_name: companyName 
+                    password
                 }
             });
             localStorage.setItem('docu_token', data.token);
@@ -163,19 +167,21 @@ export const Signup: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="form-group" style={{ marginBottom: '0.5rem' }}>
-                            <label className="form-label">Workspace / Company Name</label>
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label className="form-label">Confirm Password *</label>
                             <div style={{ position: 'relative' }}>
                                 <input
-                                    type="text"
+                                    type={showPassword ? 'text' : 'password'}
                                     className="form-input"
-                                    placeholder="Cyberdyne Systems"
-                                    value={companyName}
-                                    onChange={(e) => setCompanyName(e.target.value)}
-                                    style={{ paddingLeft: '2.5rem', height: '42px', borderRadius: '8px', borderColor: '#cbd5e1' }}
+                                    placeholder="Confirm password"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    required
+                                    style={{ paddingLeft: '2.5rem', paddingRight: '2.5rem', height: '42px', borderRadius: '8px', borderColor: '#cbd5e1' }}
                                     disabled={loading}
+                                    minLength={6}
                                 />
-                                <Briefcase size={16} style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                                <Lock size={16} style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
                             </div>
                         </div>
 

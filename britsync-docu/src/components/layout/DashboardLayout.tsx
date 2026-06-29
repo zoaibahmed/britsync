@@ -13,6 +13,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, titl
     const location = useLocation();
     const [user, setUser] = useState<any>(null);
     const [workspace, setWorkspace] = useState<any>(null);
+    const [workspaces, setWorkspaces] = useState<any[]>([]);
+    const [showSwitcher, setShowSwitcher] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [notifications, setNotifications] = useState<any[]>([]);
     const [showNotifications, setShowNotifications] = useState(false);
@@ -28,8 +30,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, titl
 
             try {
                 const data = await apiCall('auth/me');
+                if (data.user && !data.user.onboarding_completed) {
+                    navigate('/onboarding');
+                    return;
+                }
                 setUser(data.user);
                 setWorkspace(data.workspace);
+                setWorkspaces(data.workspaces || []);
                 localStorage.setItem('docu_user_role', data.role || 'member');
                 setLoading(false);
                 // Fetch notifications
@@ -44,6 +51,19 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, titl
 
         checkAuth();
     }, [navigate]);
+
+    const handleSwitchWorkspace = async (wsId: string) => {
+        try {
+            const data = await apiCall('auth/switch-workspace', {
+                method: 'POST',
+                body: { workspaceId: wsId }
+            });
+            localStorage.setItem('docu_token', data.token);
+            window.location.reload();
+        } catch (err) {
+            console.error('Switch workspace failed:', err);
+        }
+    };
 
     const handleLogout = () => {
         localStorage.removeItem('docu_token');
@@ -151,8 +171,122 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, titl
                         >
                             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
                         </button>
-                        <div className="header-title">
-                            <h1>{title}</h1>
+                        <div className="header-title" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <h1 style={{ margin: 0 }}>{title}</h1>
+                            {workspace && (
+                                <div style={{ position: 'relative', display: 'inline-block' }}>
+                                    <button 
+                                        className="workspace-switcher-btn"
+                                        style={{ 
+                                            background: '#f1f5f9', 
+                                            border: '1px solid #cbd5e1', 
+                                            borderRadius: '8px', 
+                                            padding: '6px 12px', 
+                                            fontSize: '0.8rem', 
+                                            fontWeight: 700, 
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            color: '#1e293b',
+                                            transition: 'all 0.2s'
+                                        }}
+                                        onClick={() => setShowSwitcher(!showSwitcher)}
+                                    >
+                                        🏢 {workspace.name} ▾
+                                    </button>
+                                    
+                                    {showSwitcher && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: '100%',
+                                            left: 0,
+                                            marginTop: '8px',
+                                            backgroundColor: '#ffffff',
+                                            border: '1px solid #e2e8f0',
+                                            borderRadius: '8px',
+                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                                            width: '240px',
+                                            zIndex: 999,
+                                            padding: '6px'
+                                        }}>
+                                            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', padding: '6px 8px', letterSpacing: '0.5px' }}>
+                                                Workspaces
+                                            </div>
+                                            {workspaces.map((ws) => (
+                                                <button
+                                                    key={ws._id}
+                                                    onClick={() => {
+                                                        handleSwitchWorkspace(ws._id);
+                                                        setShowSwitcher(false);
+                                                    }}
+                                                    style={{
+                                                        width: '100%',
+                                                        textAlign: 'left',
+                                                        padding: '8px',
+                                                        border: 'none',
+                                                        background: ws._id === workspace._id ? '#f1f5f9' : 'transparent',
+                                                        borderRadius: '6px',
+                                                        cursor: 'pointer',
+                                                        fontSize: '0.8rem',
+                                                        fontWeight: ws._id === workspace._id ? 700 : 500,
+                                                        color: ws._id === workspace._id ? '#2563eb' : '#334155',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'space-between'
+                                                    }}
+                                                >
+                                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '160px' }}>
+                                                        {ws.workspace_type === 'PERSONAL' ? '👤' : '🏢'} {ws.name}
+                                                    </span>
+                                                    {ws._id === workspace._id && <span style={{ color: '#2563eb', fontSize: '0.75rem' }}>✓</span>}
+                                                </button>
+                                            ))}
+                                            <div style={{ borderTop: '1px solid #f1f5f9', margin: '4px 0' }} />
+                                            <button
+                                                onClick={() => {
+                                                    setShowSwitcher(false);
+                                                    navigate('/onboarding?action=create');
+                                                }}
+                                                style={{
+                                                    width: '100%',
+                                                    textAlign: 'left',
+                                                    padding: '8px',
+                                                    border: 'none',
+                                                    background: 'transparent',
+                                                    borderRadius: '6px',
+                                                    cursor: 'pointer',
+                                                    fontSize: '0.78rem',
+                                                    color: '#2563eb',
+                                                    fontWeight: 600
+                                                }}
+                                            >
+                                                ➕ Create Company Workspace
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setShowSwitcher(false);
+                                                    navigate('/onboarding?action=join');
+                                                }}
+                                                style={{
+                                                    width: '100%',
+                                                    textAlign: 'left',
+                                                    padding: '8px',
+                                                    border: 'none',
+                                                    background: 'transparent',
+                                                    borderRadius: '6px',
+                                                    cursor: 'pointer',
+                                                    fontSize: '0.78rem',
+                                                    color: '#475569',
+                                                    fontWeight: 600
+                                                }}
+                                            >
+                                                🔍 Request to Join Company
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 

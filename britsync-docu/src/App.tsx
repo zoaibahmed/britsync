@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
 import DocumentsList from './pages/DocumentsList';
 import DocumentsNew from './pages/DocumentsNew';
@@ -27,6 +28,9 @@ export const App: React.FC = () => {
                 {/* Auth */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
+                
+                {/* Onboarding */}
+                <Route path="/onboarding" element={<Onboarding />} />
                 
                 {/* Dashboard & Workspace */}
                 <Route path="/dashboard" element={<Dashboard />} />
