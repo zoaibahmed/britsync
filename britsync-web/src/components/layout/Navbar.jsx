@@ -14,7 +14,7 @@ const navLinks = [
     { name: 'News', path: '/main/' },
     { name: 'About', path: '/about' },
     { name: 'Contact', path: '/contact' },
-    { name: 'BritSync Docu', path: '/docu/' }
+    { name: 'BritSync Docu', path: window.location.hostname === 'localhost' ? 'http://localhost:5173' : 'https://britsync-docu.britsync.co.uk' }
 ];
 
 const Navbar = () => {
@@ -43,7 +43,7 @@ const Navbar = () => {
                 <div className="nav-menu-desktop">
                     <div className="nav-links">
                         {navLinks.map((link) => (
-                            ['/main/', '/docu/'].includes(link.path) ? (
+                            ['/main/', '/docu/'].includes(link.path) || link.path.startsWith('http') ? (
                                 <a
                                     key={link.path}
                                     href={link.path}
@@ -165,7 +165,7 @@ const Navbar = () => {
                                         visible: { y: 0, opacity: 1 }
                                     }}
                                 >
-                                    {['/main/', '/docu/'].includes(link.path) ? (
+                                    {['/main/', '/docu/'].includes(link.path) || link.path.startsWith('http') ? (
                                         <a
                                             href={link.path}
                                             className={`mobile-link ${location.pathname === link.path ? 'active' : ''}`}

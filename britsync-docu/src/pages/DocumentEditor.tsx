@@ -85,6 +85,106 @@ export const DocumentEditor: React.FC = () => {
     // Save Auto-save status indicator
     const [autosaveStatus, setAutosaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
 
+    const [scanningPDF, setScanningPDF] = useState(false);
+
+    const handleAutoPlaceFields = async () => {
+        if (!pdfDoc || recipients.length === 0) {
+            alert('Please add at least one recipient first before placing fields.');
+            return;
+        }
+
+        setScanningPDF(true);
+        try {
+            const firstSigner = recipients.find(r => r.role === 'signer') || recipients[0];
+            const defaultRecipientId = firstSigner._id || firstSigner.email;
+            
+            const newFields: PlacedField[] = [...fields];
+            let autoCount = 0;
+
+            for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+                const page = await pdfDoc.getPage(pageNum);
+                const textContent = await page.getTextContent();
+                const viewport = page.getViewport({ scale: 1.0 });
+
+                for (const item of textContent.items) {
+                    const text = item.str.toLowerCase();
+                    const transform = item.transform; // [scaleX, skewY, skewX, scaleY, posX, posY]
+                    const posX = transform[4];
+                    const posY = transform[5];
+
+                    const x_percent = Math.max(0, Math.min(100, Math.round((posX / viewport.width) * 100)));
+                    const y_percent = Math.max(0, Math.min(100, Math.round(((viewport.height - posY) / viewport.height) * 100)));
+
+                    let field_type = '';
+                    let label = '';
+                    let fieldWidth = 15;
+                    let fieldHeight = 5;
+
+                    if (text.includes('signature') || text.includes('sign here') || text.includes('signed')) {
+                        field_type = 'user_signature';
+                        label = 'Recipient Signature';
+                        fieldWidth = 20;
+                        fieldHeight = 6;
+                    } else if (text.includes('date') || text.includes('dated')) {
+                        field_type = 'date';
+                        label = 'Date Signed';
+                        fieldWidth = 15;
+                        fieldHeight = 4;
+                    } else if (text.includes('full name') || text.includes('print name') || text.includes('name:')) {
+                        field_type = 'fullName';
+                        label = 'Print Full Name';
+                        fieldWidth = 18;
+                        fieldHeight = 4;
+                    } else if (text.includes('company') || text.includes('employer')) {
+                        field_type = 'company';
+                        label = 'Company Name';
+                        fieldWidth = 18;
+                        fieldHeight = 4;
+                    }
+
+                    if (field_type) {
+                        const adjustedY = Math.min(95, y_percent + 2);
+                        
+                        const isDuplicate = newFields.some(f => 
+                            f.page_number === pageNum && 
+                            Math.abs(f.x_percent - x_percent) < 5 && 
+                            Math.abs(f.y_percent - adjustedY) < 5
+                        );
+
+                        if (!isDuplicate) {
+                            newFields.push({
+                                _id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                                page_number: pageNum,
+                                field_type,
+                                label,
+                                placeholder: `Enter ${label}`,
+                                required: true,
+                                x_percent,
+                                y_percent: adjustedY,
+                                width_percent: fieldWidth,
+                                height_percent: fieldHeight,
+                                assigned_recipient_id: defaultRecipientId
+                            });
+                            autoCount++;
+                        }
+                    }
+                }
+            }
+
+            if (autoCount === 0) {
+                alert('We scanned the PDF but could not find matching keywords like "Signature", "Date", or "Full Name" to auto-place fields. You can drag and drop fields manually.');
+            } else {
+                updateFieldsWithHistory(newFields);
+                alert(`Successfully scanned PDF pages and auto-placed ${autoCount} smart fields for ${firstSigner.name}! Please review their locations.`);
+            }
+        } catch (err: any) {
+            console.error('Auto placement failed:', err);
+            alert('Failed to extract text from PDF pages.');
+        } finally {
+            setScanningPDF(false);
+        }
+    };
+
     useEffect(() => {
         const fetchDocDetails = async () => {
             try {
@@ -474,6 +574,14 @@ export const DocumentEditor: React.FC = () => {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <button 
+                        className="btn btn-secondary" 
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#7c3aed', borderColor: '#d8b4fe', background: '#faf5ff', fontWeight: 800 }} 
+                        onClick={handleAutoPlaceFields} 
+                        disabled={scanningPDF || loadingPdf}
+                    >
+                        <span>{scanningPDF ? 'Scanning...' : '✨ Smart Auto-Place'}</span>
+                    </button>
                     <button className="btn btn-secondary" onClick={handleSaveDraft} disabled={saving}>
                         <Save size={16} /> Save Draft
                     </button>

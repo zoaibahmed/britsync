@@ -33,16 +33,15 @@ export const DocumentsList: React.FC = () => {
     // Toast message state
     const [toast, setToast] = useState('');
     const [userRole, setUserRole] = useState(localStorage.getItem('docu_user_role') || 'member');
+    const [currentUser, setCurrentUser] = useState<any>(null);
 
     const fetchDocuments = async () => {
         setLoading(true);
         try {
-            // Fetch all documents including archived
             const [activeData, archivedData] = await Promise.all([
                 apiCall('documents'),
                 apiCall('documents?status=archived')
             ]);
-            // Merge both for comprehensive filtering
             setAllDocs([...activeData, ...archivedData]);
         } catch (err) {
             console.error('Failed to load documents:', err);
@@ -55,6 +54,10 @@ export const DocumentsList: React.FC = () => {
         fetchDocuments();
         const role = localStorage.getItem('docu_user_role') || 'member';
         setUserRole(role);
+        
+        apiCall('auth/me')
+            .then(data => setCurrentUser(data.user))
+            .catch(err => console.error(err));
     }, []);
 
     const showToastMsg = (msg: string) => {
@@ -177,6 +180,12 @@ export const DocumentsList: React.FC = () => {
     const folderFiltered = allDocs.filter(doc => {
         if (activeFolder === 'all') return doc.status !== 'archived';
         if (activeFolder === 'waiting') return ['sent', 'viewed'].includes(doc.status);
+        if (activeFolder === 'approvals') {
+            return doc.status !== 'archived' && doc.recipients?.some((r: any) => 
+                r.email.toLowerCase() === currentUser?.email?.toLowerCase() && 
+                ['sent', 'viewed'].includes(r.status)
+            );
+        }
         return doc.status === activeFolder;
     });
 
@@ -201,6 +210,18 @@ export const DocumentsList: React.FC = () => {
 
     const folders = [
         { id: 'all', label: 'All Documents', count: allDocs.filter(d => d.status !== 'archived').length, icon: <FolderOpen size={15} /> },
+        { 
+            id: 'approvals', 
+            label: 'Action Required', 
+            count: allDocs.filter(d => 
+                d.status !== 'archived' && 
+                d.recipients?.some((r: any) => 
+                    r.email.toLowerCase() === currentUser?.email?.toLowerCase() && 
+                    ['sent', 'viewed'].includes(r.status)
+                )
+            ).length, 
+            icon: <BadgeAlert size={15} style={{ color: '#ef4444' }} /> 
+        },
         { id: 'draft', label: 'Drafts', count: allDocs.filter(d => d.status === 'draft').length, icon: <FileText size={15} /> },
         { id: 'waiting', label: 'Waiting for Others', count: allDocs.filter(d => ['sent', 'viewed'].includes(d.status)).length, icon: <Clock size={15} /> },
         { id: 'completed', label: 'Completed', count: allDocs.filter(d => d.status === 'completed').length, icon: <FileCheck size={15} /> },
@@ -381,6 +402,10 @@ export const DocumentsList: React.FC = () => {
                                 <tbody>
                                     {sortedDocs.map((doc) => {
                                         const activeSigner = doc.recipients?.find((r: any) => ['sent', 'viewed'].includes(r.status) && r.role === 'signer');
+                                        const myRecipient = doc.recipients?.find((r: any) => 
+                                            r.email.toLowerCase() === currentUser?.email?.toLowerCase() && 
+                                            ['sent', 'viewed'].includes(r.status)
+                                        );
                                         const isSelected = selectedIds.includes(doc._id);
                                         return (
                                             <tr key={doc._id} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: isSelected ? '#f8fafc' : 'white' }}>
@@ -439,6 +464,12 @@ export const DocumentsList: React.FC = () => {
                                                             </>
                                                         )}
                                                         
+                                                        {myRecipient && (
+                                                            <a href={`${window.location.origin}/public/sign/${myRecipient.secure_token}`} target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.72rem', background: '#10b981', color: 'white', borderRadius: '6px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', fontWeight: 800 }} title="Sign/Approve Document">
+                                                                Sign / Approve
+                                                            </a>
+                                                        )}
+
                                                         {userRole !== 'viewer' && doc.status !== 'completed' && (
                                                             <button className="btn btn-secondary" style={{ padding: '0.4rem', borderRadius: '6px' }} onClick={() => navigate(`/documents/${doc._id}/editor`)} title="Open Editor">
                                                                 <Eye size={13} />

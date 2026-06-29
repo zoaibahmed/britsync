@@ -48,8 +48,17 @@ export const PublicSigning: React.FC = () => {
 
     const [loading, setLoading] = useState(true);
     const [pdfLoading, setPdfLoading] = useState(true);
-    const [state, setState] = useState<'signing' | 'completed' | 'expired' | 'declined' | 'not_your_turn' | 'error'>('signing');
+    const [state, setState] = useState<'signing' | 'completed' | 'expired' | 'declined' | 'not_your_turn' | 'auth_required' | 'error'>('signing');
     const [errorMsg, setErrorMsg] = useState('');
+
+    // Signer Authentication Verification States
+    const [authMethod, setAuthMethod] = useState<'passcode' | 'otp' | 'none'>('none');
+    const [enteredPasscode, setEnteredPasscode] = useState('');
+    const [enteredOtp, setEnteredOtp] = useState('');
+    const [verifyingAuth, setVerifyingAuth] = useState(false);
+    const [authError, setAuthError] = useState('');
+    const [otpSent, setOtpSent] = useState(false);
+    const [otpCooldown, setOtpCooldown] = useState(0);
 
     const [doc, setDoc] = useState<any>(null);
     const [recipient, setRecipient] = useState<any>(null);
@@ -84,11 +93,79 @@ export const PublicSigning: React.FC = () => {
     }, []);
 
     useEffect(() => {
+        if (otpCooldown > 0) {
+            const timer = setTimeout(() => setOtpCooldown(prev => prev - 1), 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [otpCooldown]);
+
+    const handleVerifyPasscode = async () => {
+        if (!enteredPasscode.trim()) return;
+        setVerifyingAuth(true);
+        setAuthError('');
+        try {
+            const res = await apiCall(`public/sign/${secureToken}/verify-passcode`, {
+                method: 'POST',
+                body: { passcode: enteredPasscode }
+            });
+            if (res.verified) {
+                // Trigger reload to fetch the full signing payload
+                window.location.reload();
+            }
+        } catch (err: any) {
+            setAuthError(err.message || 'Invalid passcode code.');
+        } finally {
+            setVerifyingAuth(false);
+        }
+    };
+
+    const handleSendOtp = async () => {
+        setVerifyingAuth(true);
+        setAuthError('');
+        try {
+            await apiCall(`public/sign/${secureToken}/send-otp`, { method: 'POST' });
+            setOtpSent(true);
+            setOtpCooldown(60);
+        } catch (err: any) {
+            setAuthError(err.message || 'Failed to send verification code.');
+        } finally {
+            setVerifyingAuth(false);
+        }
+    };
+
+    const handleVerifyOtp = async () => {
+        if (!enteredOtp.trim()) return;
+        setVerifyingAuth(true);
+        setAuthError('');
+        try {
+            const res = await apiCall(`public/sign/${secureToken}/verify-otp`, {
+                method: 'POST',
+                body: { otp: enteredOtp }
+            });
+            if (res.verified) {
+                window.location.reload();
+            }
+        } catch (err: any) {
+            setAuthError(err.message || 'Invalid OTP code.');
+        } finally {
+            setVerifyingAuth(false);
+        }
+    };
+
+    useEffect(() => {
         const fetchSignDetails = async () => {
             setLoading(true);
             try {
                 const data = await apiCall(`public/sign/${secureToken}`);
                 
+                if (data.state === 'auth_required') {
+                    setAuthMethod(data.auth_method);
+                    setRecipient(data.recipient);
+                    setState('auth_required');
+                    setLoading(false);
+                    return;
+                }
+
                 if (data.state === 'expired') {
                     setState('expired');
                     setLoading(false);
@@ -319,7 +396,7 @@ export const PublicSigning: React.FC = () => {
         }
         setSubmitting(true);
         try {
-            await apiCall(`documents/${doc._id}/cancel`, {
+            await apiCall(`public/sign/${secureToken}/decline`, {
                 method: 'POST',
                 body: { message: declineReason }
             });
@@ -437,6 +514,151 @@ export const PublicSigning: React.FC = () => {
                     <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: 1.5, marginBottom: '2rem' }}>
                         You have declined to sign this document. The document status has been updated and the sender has been notified.
                     </p>
+                </div>
+            </div>
+        );
+    }
+
+    if (state === 'auth_required') {
+        return (
+            <div style={{
+                minHeight: '100vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+                fontFamily: '"Inter", sans-serif',
+                padding: '1.5rem'
+            }}>
+                <div style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '16px',
+                    padding: '2.5rem',
+                    maxWidth: '460px',
+                    width: '100%',
+                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)',
+                    textAlign: 'center'
+                }}>
+                    <div style={{
+                        width: '56px',
+                        height: '56px',
+                        borderRadius: '50%',
+                        background: '#eff6ff',
+                        color: '#3b82f6',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto 1.5rem auto'
+                    }}>
+                        <AlertCircle size={28} />
+                    </div>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e3a8a', marginBottom: '0.75rem' }}>Identity Verification</h3>
+                    <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: 1.5, marginBottom: '2rem' }}>
+                        The sender has requested authentication to verify your identity before accessing this document.
+                    </p>
+
+                    {authError && (
+                        <div style={{ background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '8px', padding: '0.75rem', fontSize: '0.8rem', color: '#ef4444', marginBottom: '1.25rem' }}>
+                            {authError}
+                        </div>
+                    )}
+
+                    {authMethod === 'passcode' ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', textAlign: 'left' }}>
+                            <div className="form-group">
+                                <label className="form-label" style={{ fontSize: '0.82rem' }}>Enter Document Passcode</label>
+                                <input
+                                    type="password"
+                                    className="form-input"
+                                    placeholder="••••••••"
+                                    value={enteredPasscode}
+                                    onChange={(e) => setEnteredPasscode(e.target.value)}
+                                    style={{
+                                        background: '#ffffff',
+                                        border: '1px solid #cbd5e1',
+                                        color: '#0f172a',
+                                        borderRadius: '8px',
+                                        padding: '10px 14px',
+                                        width: '100%',
+                                        fontSize: '0.9rem',
+                                        boxSizing: 'border-box'
+                                    }}
+                                />
+                            </div>
+                            <button
+                                onClick={handleVerifyPasscode}
+                                className="btn btn-primary"
+                                style={{ width: '100%', justifyContent: 'center' }}
+                                disabled={verifyingAuth}
+                            >
+                                {verifyingAuth ? 'Verifying...' : 'Unlock Document'}
+                            </button>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', textAlign: 'left' }}>
+                            {!otpSent ? (
+                                <div>
+                                    <p style={{ fontSize: '0.85rem', color: '#334155', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+                                        A 6-digit One-Time Password will be dispatched to your email address: <strong>{recipient?.email}</strong>.
+                                    </p>
+                                    <button
+                                        onClick={handleSendOtp}
+                                        className="btn btn-primary"
+                                        style={{ width: '100%', justifyContent: 'center' }}
+                                        disabled={verifyingAuth}
+                                    >
+                                        {verifyingAuth ? 'Sending...' : 'Send Verification OTP'}
+                                    </button>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    <div className="form-group">
+                                        <label className="form-label" style={{ fontSize: '0.82rem' }}>Enter One-Time Password</label>
+                                        <input
+                                            type="text"
+                                            className="form-input"
+                                            placeholder="123456"
+                                            maxLength={6}
+                                            value={enteredOtp}
+                                            onChange={(e) => setEnteredOtp(e.target.value)}
+                                            style={{
+                                                background: '#ffffff',
+                                                border: '1px solid #cbd5e1',
+                                                color: '#0f172a',
+                                                borderRadius: '8px',
+                                                padding: '10px 14px',
+                                                width: '100%',
+                                                boxSizing: 'border-box',
+                                                textAlign: 'center', 
+                                                fontSize: '1.25rem', 
+                                                letterSpacing: '4px', 
+                                                fontWeight: 800 
+                                            }}
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={handleVerifyOtp}
+                                        className="btn btn-primary"
+                                        style={{ width: '100%', justifyContent: 'center' }}
+                                        disabled={verifyingAuth}
+                                    >
+                                        {verifyingAuth ? 'Verifying...' : 'Confirm OTP Code'}
+                                    </button>
+                                    <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
+                                        <button
+                                            type="button"
+                                            onClick={handleSendOtp}
+                                            disabled={otpCooldown > 0 || verifyingAuth}
+                                            style={{ background: 'transparent', border: 'none', color: '#3b82f6', fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'underline' }}
+                                        >
+                                            {otpCooldown > 0 ? `Resend Code in ${otpCooldown}s` : 'Resend Code'}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         );

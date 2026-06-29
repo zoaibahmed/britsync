@@ -49,11 +49,38 @@ export const Onboarding: React.FC = () => {
         // Fetch current user details
         apiCall('auth/me').then(data => {
             setUser(data.user);
+            apiCall('workspaces/domain-suggestions').then(suggestions => {
+                setDomainSuggestions(suggestions);
+            }).catch(e => console.error('Suggestions check skipped:', e));
         }).catch(err => {
             console.error('Failed to load user:', err);
             navigate('/login');
         });
     }, [searchParams, navigate]);
+
+    const [domainSuggestions, setDomainSuggestions] = useState<any[]>([]);
+
+    const handleDomainJoin = async (workspaceId: string) => {
+        setLoading(true);
+        setError('');
+        try {
+            const res = await apiCall('workspaces/request-domain-join', {
+                method: 'POST',
+                body: { workspace_id: workspaceId }
+            });
+            if (res.status === 'joined') {
+                setSuccessMessage('Successfully joined the workspace via company domain auto-approval!');
+                setTimeout(() => navigate('/dashboard'), 3000);
+            } else {
+                setSuccessMessage('Your request to join has been submitted to the workspace administrator. You will receive an email once resolved.');
+                setTimeout(() => navigate('/dashboard'), 5000);
+            }
+        } catch (err: any) {
+            setError(err.message || 'Failed to submit join request');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handlePersonal = async () => {
         setLoading(true);
@@ -226,12 +253,49 @@ export const Onboarding: React.FC = () => {
                         <p style={{ fontSize: '0.9rem', color: '#1e3a8a', lineHeight: 1.6 }}>{successMessage}</p>
                     </div>
                 ) : choice === 'none' ? (
-                    /* Onboarding Options Cards Grid */
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-                        gap: '1.5rem'
-                    }}>
+                    <div>
+                        {domainSuggestions.length > 0 && (
+                            <div style={{
+                                background: '#eff6ff',
+                                border: '1px solid #bfdbfe',
+                                borderRadius: '16px',
+                                padding: '1.5rem',
+                                marginBottom: '2rem',
+                                textAlign: 'left'
+                            }}>
+                                <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#1e40af', marginBottom: '0.5rem' }}>
+                                    💼 Workspaces matching your organization found!
+                                </h4>
+                                <p style={{ fontSize: '0.85rem', color: '#1e40af', marginBottom: '1rem' }}>
+                                    We found matching corporate workspaces for your email domain (<strong>{user?.email?.split('@')[1]}</strong>):
+                                </p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                    {domainSuggestions.map(ds => (
+                                        <div key={ds._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#ffffff', padding: '1rem', borderRadius: '12px', border: '1px solid #dbeafe' }}>
+                                            <div>
+                                                <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>{ds.name}</strong>
+                                                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Plan: {ds.plan} • {ds.require_approval_for_join ? 'Requires approval' : 'Instant join'}</div>
+                                            </div>
+                                            <button 
+                                                onClick={() => handleDomainJoin(ds._id)}
+                                                className="btn btn-primary"
+                                                style={{ padding: '0.4rem 1rem', fontSize: '0.82rem', background: '#3b82f6', border: 'none' }}
+                                                disabled={loading}
+                                            >
+                                                Request Access
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Onboarding Options Cards Grid */}
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                            gap: '1.5rem'
+                        }}>
                         {/* Personal Card */}
                         <div style={{
                             background: '#ffffff',
@@ -373,6 +437,7 @@ export const Onboarding: React.FC = () => {
                             </span>
                         </div>
                     </div>
+                </div>
                 ) : choice === 'create' ? (
                     /* Create Company Form Card with Stripe Selection - Premium White styling */
                     <div style={{

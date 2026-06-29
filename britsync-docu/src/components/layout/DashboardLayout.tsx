@@ -19,6 +19,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, titl
     const [notifications, setNotifications] = useState<any[]>([]);
     const [showNotifications, setShowNotifications] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [usage, setUsage] = useState<any>(null);
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -39,6 +40,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, titl
                 setWorkspaces(data.workspaces || []);
                 localStorage.setItem('docu_user_role', data.role || 'member');
                 setLoading(false);
+                
+                // Fetch usage
+                apiCall('usage/current').then(u => setUsage(u)).catch(e => console.error(e));
+                
                 // Fetch notifications
                 const notifs = await apiCall('notifications');
                 setNotifications(notifs);
@@ -137,6 +142,22 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, titl
                         );
                     })}
                 </ul>
+
+                {usage && (
+                    <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', background: 'rgba(248, 250, 252, 0.4)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>
+                            <span>Monthly Quota</span>
+                            <span style={{ textTransform: 'capitalize', color: usage.plan === 'business' ? '#10b981' : usage.plan === 'pro' ? '#3b82f6' : '#64748b' }}>{usage.plan}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
+                            <span>{usage.used} / {usage.limit} docs</span>
+                            <span>{usage.percent}%</span>
+                        </div>
+                        <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', background: usage.percent >= 90 ? '#ef4444' : usage.percent >= 75 ? '#f59e0b' : '#3b82f6', width: `${usage.percent}%`, borderRadius: '3px' }}></div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="sidebar-footer">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', padding: '0 0.5rem' }}>
