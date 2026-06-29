@@ -42,6 +42,82 @@ const emailTransporter = nodemailer.createTransport({
     }
 });
 
+const originalSendMail = emailTransporter.sendMail.bind(emailTransporter);
+emailTransporter.sendMail = async function(mailOptions, callback) {
+    const DocuEmailLog = require('../models/DocuEmailLog');
+    const workspaceId = mailOptions.workspaceId || null;
+    const documentId = mailOptions.documentId || null;
+    const recipientEmail = Array.isArray(mailOptions.to) ? mailOptions.to.join(', ') : mailOptions.to;
+    const subject = mailOptions.subject || '';
+    const emailType = mailOptions.emailType || 'GENERIC';
+
+    let logStatus = 'SENT';
+    let errorMessage = '';
+    let messageId = '';
+
+    try {
+        if (callback) {
+            return originalSendMail(mailOptions, async (err, result) => {
+                if (err) {
+                    logStatus = 'FAILED';
+                    errorMessage = err.message;
+                } else {
+                    messageId = result?.messageId || '';
+                }
+                try {
+                    await new DocuEmailLog({
+                        workspace_id: workspaceId,
+                        document_id: documentId,
+                        recipient_email: recipientEmail,
+                        email_type: emailType,
+                        subject,
+                        status: logStatus,
+                        provider_message_id: messageId,
+                        error_message: errorMessage
+                    }).save();
+                } catch (saveErr) {
+                    console.error('Failed to save email log:', saveErr);
+                }
+                callback(err, result);
+            });
+        } else {
+            const result = await originalSendMail(mailOptions);
+            messageId = result?.messageId || '';
+            try {
+                await new DocuEmailLog({
+                    workspace_id: workspaceId,
+                    document_id: documentId,
+                    recipient_email: recipientEmail,
+                    email_type: emailType,
+                    subject,
+                    status: 'SENT',
+                    provider_message_id: messageId
+                }).save();
+            } catch (saveErr) {
+                console.error('Failed to save email log:', saveErr);
+            }
+            return result;
+        }
+    } catch (err) {
+        logStatus = 'FAILED';
+        errorMessage = err.message;
+        try {
+            await new DocuEmailLog({
+                workspace_id: workspaceId,
+                document_id: documentId,
+                recipient_email: recipientEmail,
+                email_type: emailType,
+                subject,
+                status: 'FAILED',
+                error_message: errorMessage
+            }).save();
+        } catch (saveErr) {
+            console.error('Failed to save email log:', saveErr);
+        }
+        throw err;
+    }
+};
+
 const sanitizeTextForPdf = (str) => {
     if (!str) return '';
     return String(str)
@@ -339,8 +415,22 @@ router.post('/auth/login', async (req, res) => {
         const user = await DocuUser.findOne({ email });
         if (!user) return res.status(401).json({ message: 'Invalid email or password' });
 
+        if (user.status === 'SUSPENDED') {
+            return res.status(403).json({ message: 'Your account has been suspended. Please contact support.' });
+        }
+
         const isMatch = await bcrypt.compare(password, user.password_hash);
-        if (!isMatch) return res.status(401).json({ message: 'Invalid email or password' });
+        if (!isMatch) {
+            user.failed_login_count = (user.failed_login_count || 0) + 1;
+            await user.save();
+            return res.status(401).json({ message: 'Invalid email or password' });
+        }
+
+        // Reset failed logins and update login logs
+        user.failed_login_count = 0;
+        user.last_login_at = new Date();
+        user.last_login_ip = req.ip || req.headers['x-forwarded-for'] || 'Unknown';
+        await user.save();
 
         // Find default workspace or first joined workspace
         let wsId = user.default_workspace_id;

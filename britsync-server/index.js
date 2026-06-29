@@ -1571,6 +1571,9 @@ app.get('/api/britsync-docu/sign/:token/download', async (req, res) => {
 const docuRouter = require('./routes/docu');
 app.use('/api/docu', docuRouter);
 
+const superAdminRouter = require('./routes/superAdmin');
+app.use('/api/docu/super-admin', superAdminRouter);
+
 // Start Server
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
