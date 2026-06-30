@@ -98,6 +98,15 @@ export const DocumentEditor: React.FC = () => {
             const textContent = await page.getTextContent();
             const viewport = page.getViewport({ scale: 1.0 });
 
+            const isAuditPage = textContent.items.some((it: any) => {
+                const str = (it.str || '').toLowerCase();
+                return str.includes('certificate of completion') || str.includes('audit trail') || str.includes('signer event tracking');
+            });
+            if (isAuditPage) {
+                alert('AI auto-placement is disabled on post-signature audit certificates.');
+                return;
+            }
+
             const items = textContent.items.map((it: any) => {
                 const posX = it.transform[4];
                 const posY = it.transform[5];
@@ -197,6 +206,14 @@ export const DocumentEditor: React.FC = () => {
 
                 // Filter out empty items
                 const items = textContent.items.filter((it: any) => it.str && it.str.trim());
+                 
+                 const isAuditPage = items.some((it: any) => {
+                     const str = (it.str || '').toLowerCase();
+                     return str.includes('certificate of completion') || str.includes('audit trail') || str.includes('signer event tracking');
+                 });
+                 if (isAuditPage) {
+                     continue;
+                 }
                 
                 // Group items into lines based on Y coordinate similarity (within 6 points)
                 const lines: { y: number; items: any[] }[] = [];
@@ -268,13 +285,26 @@ export const DocumentEditor: React.FC = () => {
                         const x_percent = Math.max(0, Math.min(100, Math.round((vx / viewport.width) * 100)));
                         const y_percent = Math.max(0, Math.min(100, Math.round((vy / viewport.height) * 100)));
                         
-                        // Shift it slightly below the label line
-                        const adjustedY = Math.min(95, y_percent + 2.5);
+                        const lineAfterKeyword = cleanLineText.split(targetKeyword)[1] || '';
+                        const isInline = lineAfterKeyword.includes(':') || lineAfterKeyword.includes('_') || lineAfterKeyword.trim().length > 0;
+
+                        let adjustedX = x_percent;
+                        let adjustedY = y_percent;
+
+                        if (isInline) {
+                            // Place immediately to the right of the label text
+                            const labelWidthPercent = Math.min(22, bestItem.str.length * 0.95);
+                            adjustedX = Math.min(80, x_percent + labelWidthPercent + 1);
+                            adjustedY = Math.min(95, y_percent - 0.5); // align with the text line
+                        } else {
+                            // Place below the label
+                            adjustedY = Math.min(95, y_percent + 4.2);
+                        }
 
                         // Avoid adding duplicates in close proximity
                         const isDuplicate = newFields.some(f => 
                             f.page_number === pageNum && 
-                            Math.abs(f.x_percent - x_percent) < 5 && 
+                            Math.abs(f.x_percent - adjustedX) < 5 && 
                             Math.abs(f.y_percent - adjustedY) < 5
                         );
 
@@ -286,7 +316,7 @@ export const DocumentEditor: React.FC = () => {
                                 label,
                                 placeholder: `Enter ${label}`,
                                 required: true,
-                                x_percent,
+                                x_percent: adjustedX,
                                 y_percent: adjustedY,
                                 width_percent: fieldWidth,
                                 height_percent: fieldHeight,
