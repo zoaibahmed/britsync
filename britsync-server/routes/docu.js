@@ -3768,17 +3768,92 @@ router.post('/documents/:id/suggest-fields', checkFeatureGate('custom_branding')
         const doc = await DocuDocumentNew.findOne({ _id: req.params.id, workspace_id: req.user.workspaceId });
         if (!doc) return res.status(404).json({ message: 'Document not found' });
 
-        // Analyze file content using a mock regex parsing list
-        // Real logic parses PDF content stream. Here we suggest coordinates if labels are found.
-        const mockSuggestions = [
-            { field_type: 'user_signature', label: 'Signature', x_percent: 15, y_percent: 82, width_percent: 25, height_percent: 6 },
-            { field_type: 'fullName', label: 'Full Name', x_percent: 15, y_percent: 74, width_percent: 30, height_percent: 4 },
-            { field_type: 'date', label: 'Date', x_percent: 60, y_percent: 82, width_percent: 15, height_percent: 4 }
-        ];
+        const { items, viewportWidth, viewportHeight } = req.body;
+        if (!items || items.length === 0) {
+            return res.json({ suggestions: [] });
+        }
 
-        res.json({ suggestions: mockSuggestions });
+        const cleanItems = items
+            .filter(it => it.str && it.str.trim())
+            .map(it => ({
+                text: it.str,
+                x: Math.round(it.x),
+                y: Math.round(it.y),
+                w: Math.round(it.w),
+                h: Math.round(it.h)
+            }));
+
+        const systemPrompt = `You are an AI assistant designed to parse layouts of PDF documents for digital signing.
+You are given a list of text fragments and their viewport coordinates: (x, y) where x is the distance from the left edge and y is the distance from the top edge. The overall page dimensions are ${viewportWidth}x${viewportHeight}.
+
+Analyze this layout spatially to identify logical signing fields. Specifically, locate where:
+1. Signatures (indicated by labels like "Signature", "Sign here", "Sign", "Signature of...", line indicators like "X ______")
+2. Full Names (indicated by labels like "Print Name", "Full Name", "Name")
+3. Dates (indicated by labels like "Date", "Dated", "Date signed")
+4. Company names (indicated by labels like "Company", "Employer", "Title")
+
+For each identified field, return:
+- field_type: "user_signature" | "fullName" | "date" | "company"
+- label: A short label describing it
+- x_percent: The percentage (0-100) from the left edge of the page where the input box should start. Place it immediately below or next to the label text.
+- y_percent: The percentage (0-100) from the top edge of the page where the input box should start. Place it immediately below the label text (usually y_percent + 2.5).
+- width_percent: Width of the field (approx 15-25%)
+- height_percent: Height of the field (approx 4-6%)
+
+Return the result as a strict JSON object containing a "suggestions" array:
+{
+  "suggestions": [
+    {
+      "field_type": "user_signature",
+      "label": "Signature of Client",
+      "x_percent": 15,
+      "y_percent": 82,
+      "width_percent": 20,
+      "height_percent": 6
+    }
+  ]
+}
+Do NOT include any explanations, markdown code blocks, or preamble. Return ONLY valid JSON.`;
+
+        const userPrompt = `Here are the text fragments on the page:
+${JSON.stringify(cleanItems.slice(0, 150))}`;
+
+        let suggestions = [];
+
+        if (process.env.OPENAI_API_KEY) {
+            const { OpenAI } = require('openai');
+            const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+            const completion = await openai.chat.completions.create({
+                model: "gpt-4o-mini",
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userPrompt }
+                ],
+                response_format: { type: "json_object" }
+            });
+            const resObj = JSON.parse(completion.choices[0].message.content);
+            suggestions = resObj.suggestions || [];
+        } else if (process.env.GROQ_API_KEY) {
+            const Groq = require('groq-sdk');
+            const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+            const completion = await groq.chat.completions.create({
+                model: "llama-3.3-70b-versatile",
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userPrompt }
+                ],
+                response_format: { type: "json_object" }
+            });
+            const resObj = JSON.parse(completion.choices[0].message.content);
+            suggestions = resObj.suggestions || [];
+        } else {
+            return res.status(400).json({ message: 'AI suggestion engine is not configured (missing GROQ_API_KEY or OPENAI_API_KEY in server .env)' });
+        }
+
+        res.json({ suggestions });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        console.error('AI field suggestion failed:', err);
+        res.status(500).json({ message: 'AI suggestion failed: ' + err.message });
     }
 });
 

@@ -87,9 +87,98 @@ export const DocumentEditor: React.FC = () => {
 
     const [scanningPDF, setScanningPDF] = useState(false);
 
+    const runAISmartScan = async () => {
+        setScanningPDF(true);
+        try {
+            const firstSigner = recipients.find(r => r.role === 'signer') || recipients[0];
+            const defaultRecipientId = firstSigner._id || firstSigner.email;
+
+            const pageNum = 1;
+            const page = await pdfDoc.getPage(pageNum);
+            const textContent = await page.getTextContent();
+            const viewport = page.getViewport({ scale: 1.0 });
+
+            const items = textContent.items.map((it: any) => {
+                const posX = it.transform[4];
+                const posY = it.transform[5];
+                const [vx, vy] = viewport.convertToViewportPoint(posX, posY);
+                return {
+                    str: it.str,
+                    x: Math.round(vx),
+                    y: Math.round(vy),
+                    w: Math.round(it.width || 50),
+                    h: Math.round(it.height || 12)
+                };
+            });
+
+            const response = await apiCall(`documents/${id}/suggest-fields`, {
+                method: 'POST',
+                body: {
+                    items,
+                    viewportWidth: Math.round(viewport.width),
+                    viewportHeight: Math.round(viewport.height)
+                }
+            });
+
+            const suggestions = response.suggestions || [];
+            if (suggestions.length === 0) {
+                alert('AI scan completed but no matching fields were detected.');
+                return;
+            }
+
+            const newFields = [...fields];
+            let addedCount = 0;
+
+            for (const sug of suggestions) {
+                const isDuplicate = newFields.some(f => 
+                    f.page_number === pageNum && 
+                    Math.abs(f.x_percent - sug.x_percent) < 5 && 
+                    Math.abs(f.y_percent - sug.y_percent) < 5
+                );
+
+                if (!isDuplicate) {
+                    newFields.push({
+                        _id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                        page_number: pageNum,
+                        field_type: sug.field_type,
+                        label: sug.label,
+                        placeholder: `Enter ${sug.label}`,
+                        required: true,
+                        x_percent: sug.x_percent,
+                        y_percent: sug.y_percent,
+                        width_percent: sug.width_percent || 15,
+                        height_percent: sug.height_percent || 5,
+                        assigned_recipient_id: defaultRecipientId
+                    });
+                    addedCount++;
+                }
+            }
+
+            updateFieldsWithHistory(newFields);
+            alert(`AI Smart Scan successfully analyzed the layout and placed ${addedCount} advanced fields for ${firstSigner.name}!`);
+
+        } catch (err: any) {
+            console.error('AI Scan failed:', err);
+            alert(err.message || 'AI Scan failed. Make sure your server API key is configured.');
+        } finally {
+            setScanningPDF(false);
+        }
+    };
+
     const handleAutoPlaceFields = async () => {
         if (!pdfDoc || recipients.length === 0) {
             alert('Please add at least one recipient first before placing fields.');
+            return;
+        }
+
+        const choice = window.confirm(
+            "Which scan engine would you like to run?\n\n" +
+            "Click [OK] for Local Scanner (Fast, free, precise coordinate alignment)\n" +
+            "Click [Cancel] for AI Smart Scanner (Powered by OpenAI/Groq for complex forms)"
+        );
+
+        if (!choice) {
+            await runAISmartScan();
             return;
         }
 
@@ -106,45 +195,83 @@ export const DocumentEditor: React.FC = () => {
                 const textContent = await page.getTextContent();
                 const viewport = page.getViewport({ scale: 1.0 });
 
-                for (const item of textContent.items) {
-                    const text = item.str.toLowerCase();
-                    const transform = item.transform; // [scaleX, skewY, skewX, scaleY, posX, posY]
-                    const posX = transform[4];
-                    const posY = transform[5];
+                // Filter out empty items
+                const items = textContent.items.filter((it: any) => it.str && it.str.trim());
+                
+                // Group items into lines based on Y coordinate similarity (within 6 points)
+                const lines: { y: number; items: any[] }[] = [];
+                for (const it of items) {
+                    const y = it.transform[5];
+                    let line = lines.find(l => Math.abs(l.y - y) < 6);
+                    if (!line) {
+                        line = { y, items: [] };
+                        lines.push(line);
+                    }
+                    line.items.push(it);
+                }
 
-                    const x_percent = Math.max(0, Math.min(100, Math.round((posX / viewport.width) * 100)));
-                    const y_percent = Math.max(0, Math.min(100, Math.round(((viewport.height - posY) / viewport.height) * 100)));
+                // Sort lines from top to bottom
+                lines.sort((a, b) => b.y - a.y);
+
+                // Process each line
+                for (const line of lines) {
+                    // Sort items in the line from left to right
+                    line.items.sort((a, b) => a.transform[4] - b.transform[4]);
+                    
+                    const lineText = line.items.map(it => it.str).join(' ');
+                    const cleanLineText = lineText.toLowerCase();
 
                     let field_type = '';
                     let label = '';
                     let fieldWidth = 15;
                     let fieldHeight = 5;
+                    let targetKeyword = '';
 
-                    if (text.includes('signature') || text.includes('sign here') || text.includes('signed')) {
+                    if (cleanLineText.includes('signature') || cleanLineText.includes('sign here') || cleanLineText.includes('signed')) {
                         field_type = 'user_signature';
                         label = 'Recipient Signature';
                         fieldWidth = 20;
                         fieldHeight = 6;
-                    } else if (text.includes('date') || text.includes('dated')) {
+                        targetKeyword = cleanLineText.includes('signature') ? 'signature' : cleanLineText.includes('sign here') ? 'sign here' : 'signed';
+                    } else if (cleanLineText.includes('date') || cleanLineText.includes('dated')) {
                         field_type = 'date';
                         label = 'Date Signed';
                         fieldWidth = 15;
                         fieldHeight = 4;
-                    } else if (text.includes('full name') || text.includes('print name') || text.includes('name:')) {
+                        targetKeyword = cleanLineText.includes('date') ? 'date' : 'dated';
+                    } else if (cleanLineText.includes('full name') || cleanLineText.includes('print name') || cleanLineText.includes('name:')) {
                         field_type = 'fullName';
                         label = 'Print Full Name';
                         fieldWidth = 18;
                         fieldHeight = 4;
-                    } else if (text.includes('company') || text.includes('employer')) {
+                        targetKeyword = cleanLineText.includes('full name') ? 'full name' : cleanLineText.includes('print name') ? 'print name' : 'name:';
+                    } else if (cleanLineText.includes('company') || cleanLineText.includes('employer')) {
                         field_type = 'company';
                         label = 'Company Name';
                         fieldWidth = 18;
                         fieldHeight = 4;
+                        targetKeyword = cleanLineText.includes('company') ? 'company' : 'employer';
                     }
 
-                    if (field_type) {
-                        const adjustedY = Math.min(95, y_percent + 2);
+                    if (field_type && targetKeyword) {
+                        // Find the text element that matched or is closest to the target keyword
+                        const matchIndex = line.items.findIndex(it => 
+                            it.str.toLowerCase().includes(targetKeyword) || 
+                            targetKeyword.includes(it.str.toLowerCase())
+                        );
+                        const bestItem = matchIndex !== -1 ? line.items[matchIndex] : line.items[0];
+
+                        const posX = bestItem.transform[4];
+                        const posY = bestItem.transform[5];
+                        const [vx, vy] = viewport.convertToViewportPoint(posX, posY);
+
+                        const x_percent = Math.max(0, Math.min(100, Math.round((vx / viewport.width) * 100)));
+                        const y_percent = Math.max(0, Math.min(100, Math.round((vy / viewport.height) * 100)));
                         
+                        // Shift it slightly below the label line
+                        const adjustedY = Math.min(95, y_percent + 2.5);
+
+                        // Avoid adding duplicates in close proximity
                         const isDuplicate = newFields.some(f => 
                             f.page_number === pageNum && 
                             Math.abs(f.x_percent - x_percent) < 5 && 
