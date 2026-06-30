@@ -45,6 +45,13 @@ interface PlacedField {
 
 export const PublicSigning: React.FC = () => {
     const { secureToken } = useParams();
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const [loading, setLoading] = useState(true);
     const [pdfLoading, setPdfLoading] = useState(true);
@@ -698,45 +705,52 @@ export const PublicSigning: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#f1f5f9' }}>
             {/* Header */}
             <div style={{
-                height: '60px',
+                height: isMobile ? 'auto' : '60px',
+                minHeight: '60px',
                 background: 'white',
                 borderBottom: '1px solid #e2e8f0',
                 display: 'flex',
-                alignItems: 'center',
+                flexDirection: isMobile ? 'column' : 'row',
+                alignItems: isMobile ? 'stretch' : 'center',
                 justifyContent: 'space-between',
-                padding: '0 1.5rem',
+                padding: isMobile ? '0.75rem 1rem' : '0 1.5rem',
                 position: 'sticky',
                 top: 0,
-                zIndex: 100
+                zIndex: 100,
+                gap: isMobile ? '0.5rem' : '0'
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                     {logoUrl ? (
-                        <img src={logoUrl} alt="Logo" style={{ height: '28px', maxWidth: '120px', objectFit: 'contain' }} />
+                        <img src={logoUrl} alt="Logo" style={{ height: isMobile ? '20px' : '28px', maxWidth: '100px', objectFit: 'contain' }} />
                     ) : (
                         <img 
                             src={`${import.meta.env.BASE_URL}logo.png`} 
                             alt="Logo" 
                             style={{ 
-                                height: '28px', 
-                                width: '28px', 
-                                borderRadius: '6px', 
+                                height: isMobile ? '20px' : '28px', 
+                                width: isMobile ? '20px' : '28px', 
+                                borderRadius: '4px', 
                                 objectFit: 'cover',
                                 boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
                             }} 
                         />
                     )}
-                    <span style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
+                    <span style={{ fontSize: isMobile ? '0.85rem' : '1rem', fontWeight: 800, color: '#0f172a' }}>
                         {companyName} <span style={{ color: brandColor }}>Docu</span>
                     </span>
-                    <span style={{ color: '#cbd5e1' }}>|</span>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>{doc?.document_name}</span>
+                    {!isMobile && (
+                        <>
+                            <span style={{ color: '#cbd5e1' }}>|</span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>{doc?.document_name}</span>
+                        </>
+                    )}
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button className="btn btn-secondary" onClick={() => setShowDeclineModal(true)} style={{ color: '#ef4444' }}>
-                        Decline to Sign
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: isMobile ? 'space-between' : 'flex-start' }}>
+                    <button className="btn btn-secondary" onClick={() => setShowDeclineModal(true)} style={{ color: '#ef4444', padding: isMobile ? '0.35rem 0.65rem' : '', fontSize: isMobile ? '0.75rem' : '' }}>
+                        {isMobile ? 'Decline' : 'Decline to Sign'}
                     </button>
-                    <button className="btn btn-primary" onClick={handleComplete} disabled={submitting} style={{ backgroundColor: brandColor }}>
-                        {submitting ? 'Processing...' : 'Complete Document'}
+                    <button className="btn btn-primary" onClick={handleComplete} disabled={submitting} style={{ backgroundColor: brandColor, padding: isMobile ? '0.35rem 0.65rem' : '', fontSize: isMobile ? '0.75rem' : '' }}>
+                        {submitting ? 'Processing...' : isMobile ? 'Complete' : 'Complete Document'}
                     </button>
                 </div>
             </div>
@@ -745,36 +759,36 @@ export const PublicSigning: React.FC = () => {
             <div style={{
                 background: 'white',
                 borderBottom: '1px solid #e2e8f0',
-                padding: '0.5rem 1.5rem',
+                padding: '0.5rem 1rem',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 flexWrap: 'wrap',
-                gap: '1rem',
+                gap: '0.5rem',
                 boxShadow: 'var(--shadow-sm)'
             }}>
-                <div style={{ fontSize: '0.8rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Sparkles size={14} style={{ color: brandColor }} />
-                    <span>Awaiting your signature as <strong>{recipient?.name} ({recipient?.email})</strong></span>
+                <div style={{ fontSize: '0.75rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
+                    <Sparkles size={12} style={{ color: brandColor }} />
+                    <span>Awaiting signature as <strong>{recipient?.name}</strong></span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: remainingRequired.length > 0 ? '#ef4444' : '#10b981' }}>
-                        {remainingRequired.length > 0 ? `${remainingRequired.length} required fields remaining` : 'All required fields completed!'}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: isMobile ? 'space-between' : 'flex-start', width: isMobile ? '100%' : 'auto' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: remainingRequired.length > 0 ? '#ef4444' : '#10b981' }}>
+                        {remainingRequired.length > 0 ? `${remainingRequired.length} fields left` : 'All completed!'}
                     </span>
                     {remainingRequired.length > 0 && (
                         <button 
                             className="btn btn-primary" 
-                            style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: '#f59e0b', border: '1px solid #d97706' }}
+                            style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem', backgroundColor: '#f59e0b', border: '1px solid #d97706' }}
                             onClick={handleGoToNextRequired}
                         >
-                            Next Required <ArrowDownCircle size={12} />
+                            Next Required <ArrowDownCircle size={10} />
                         </button>
                     )}
                 </div>
             </div>
 
             {/* Document Signing Workspace */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2rem' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '0.5rem' : '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: isMobile ? '0.75rem' : '2rem' }}>
                 {pdfLoading ? (
                     <div style={{ display: 'flex', minHeight: '40vh', alignItems: 'center', justifyContent: 'center' }}>
                         <div className="spinner"></div>
@@ -973,16 +987,33 @@ const SigningPageContainer: React.FC<SigningPageProps> = ({
 }) => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
+    const [scale, setScale] = useState(1.3);
+
+    useEffect(() => {
+        const calculateScale = () => {
+            const screenWidth = window.innerWidth;
+            if (screenWidth < 768) {
+                // Approximate 612pt for standard Letter width. Scale to fit screen.
+                const newScale = Math.max(0.4, (screenWidth - 32) / 612);
+                setScale(newScale);
+            } else {
+                setScale(1.3);
+            }
+        };
+        calculateScale();
+        window.addEventListener('resize', calculateScale);
+        return () => window.removeEventListener('resize', calculateScale);
+    }, []);
 
     useEffect(() => {
         if (!pdfDoc) return;
         const loadDimensions = async () => {
             const page = await pdfDoc.getPage(pageNum);
-            const viewport = page.getViewport({ scale: 1.3 });
+            const viewport = page.getViewport({ scale });
             setDimensions({ width: viewport.width, height: viewport.height });
         };
         loadDimensions();
-    }, [pdfDoc, pageNum]);
+    }, [pdfDoc, pageNum, scale]);
 
     useEffect(() => {
         if (!pdfDoc || !dimensions || !canvasRef.current) return;
@@ -990,7 +1021,7 @@ const SigningPageContainer: React.FC<SigningPageProps> = ({
         const renderPage = async () => {
             try {
                 const page = await pdfDoc.getPage(pageNum);
-                const viewport = page.getViewport({ scale: 1.3 });
+                const viewport = page.getViewport({ scale });
                 const canvas = canvasRef.current!;
                 const context = canvas.getContext('2d')!;
 
@@ -1008,13 +1039,13 @@ const SigningPageContainer: React.FC<SigningPageProps> = ({
                 renderTask.cancel();
             }
         };
-    }, [pdfDoc, dimensions, pageNum]);
+    }, [pdfDoc, dimensions, pageNum, scale]);
 
     const pageFields = fields.filter(f => f.page_number === pageNum);
 
     if (!dimensions) {
         return (
-            <div style={{ width: '800px', height: '500px', background: 'white', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: '100%', maxWidth: '800px', height: '500px', background: 'white', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div className="spinner"></div>
             </div>
         );

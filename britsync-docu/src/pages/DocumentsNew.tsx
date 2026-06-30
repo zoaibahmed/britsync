@@ -664,7 +664,7 @@ export const DocumentsNew: React.FC = () => {
                                             <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem' }}>Only PDF format, max 15MB</span>
                                         </>
                                     )}
-                                    <input type="file" className="file-input" accept=".pdf" onChange={handleFileChange} style={{ display: 'none' }} required={mode === 'upload'} />
+                                    <input type="file" className="file-input" accept=".pdf" onChange={handleFileChange} style={{ display: 'none' }} />
                                 </label>
                             </div>
 

@@ -4,7 +4,7 @@ import { apiCall } from '../utils/api';
 import { 
     ArrowLeft, Save, ArrowRight, Trash2, HelpCircle, Type, PenTool, 
     CheckSquare, Calendar, ChevronDown, Award, Undo2, Redo2, 
-    ZoomIn, ZoomOut, Copy, FileUp, Info
+    ZoomIn, ZoomOut, Copy, FileUp, Info, Users
 } from 'lucide-react';
 import { Select } from '../components/ui/Select';
 
@@ -86,6 +86,23 @@ export const DocumentEditor: React.FC = () => {
     const [autosaveStatus, setAutosaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
 
     const [scanningPDF, setScanningPDF] = useState(false);
+
+    const [isMobileOrTablet, setIsMobileOrTablet] = useState(window.innerWidth < 1024);
+    const [showLeftSidebar, setShowLeftSidebar] = useState(window.innerWidth >= 1024);
+    const [showRightSidebar, setShowRightSidebar] = useState(window.innerWidth >= 1024);
+
+    useEffect(() => {
+        const handleResize = () => {
+            const isNarrow = window.innerWidth < 1024;
+            setIsMobileOrTablet(isNarrow);
+            if (!isNarrow) {
+                setShowLeftSidebar(true);
+                setShowRightSidebar(true);
+            }
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const runAISmartScan = async () => {
         setScanningPDF(true);
@@ -728,6 +745,49 @@ export const DocumentEditor: React.FC = () => {
                     <button className="btn btn-secondary" style={{ padding: '0.4rem', minWidth: 'auto' }} onClick={() => setZoom(z => Math.min(2.0, z + 0.1))} title="Zoom In">
                         <ZoomIn size={15} />
                     </button>
+                    {isMobileOrTablet && (
+                        <>
+                            <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 0.5rem' }} />
+                            <button 
+                                className="btn btn-secondary" 
+                                style={{
+                                    padding: '0.4rem 0.6rem',
+                                    fontSize: '0.75rem',
+                                    backgroundColor: showLeftSidebar ? '#eff6ff' : 'transparent',
+                                    color: showLeftSidebar ? '#2563eb' : '#475569',
+                                    border: showLeftSidebar ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                }} 
+                                onClick={() => {
+                                    setShowLeftSidebar(!showLeftSidebar);
+                                    setShowRightSidebar(false);
+                                }}
+                            >
+                                <PenTool size={13} /> Tools
+                            </button>
+                            <button 
+                                className="btn btn-secondary" 
+                                style={{
+                                    padding: '0.4rem 0.6rem',
+                                    fontSize: '0.75rem',
+                                    backgroundColor: showRightSidebar ? '#eff6ff' : 'transparent',
+                                    color: showRightSidebar ? '#2563eb' : '#475569',
+                                    border: showRightSidebar ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                }} 
+                                onClick={() => {
+                                    setShowRightSidebar(!showRightSidebar);
+                                    setShowLeftSidebar(false);
+                                }}
+                            >
+                                <Users size={13} /> Signers
+                            </button>
+                        </>
+                    )}
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -749,16 +809,25 @@ export const DocumentEditor: React.FC = () => {
             </div>
 
             {/* Editor Workspace */}
-            <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
                 {/* Left Toolbelt */}
                 <div style={{
                     width: '240px',
                     background: 'white',
                     borderRight: '1px solid #e2e8f0',
-                    display: 'flex',
+                    display: showLeftSidebar ? 'flex' : 'none',
                     flexDirection: 'column',
                     padding: '1.25rem 0.75rem',
-                    overflowY: 'auto'
+                    overflowY: 'auto',
+                    ...(isMobileOrTablet && {
+                        position: 'absolute',
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        zIndex: 1000,
+                        height: 'calc(100vh - 60px)',
+                        boxShadow: '4px 0 16px rgba(0,0,0,0.1)'
+                    })
                 }}>
                     {['Basic', 'Recipient Info', 'Advanced'].map(cat => (
                         <div key={cat} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '1.25rem' }}>
@@ -836,10 +905,19 @@ export const DocumentEditor: React.FC = () => {
                     background: 'white',
                     borderLeft: '1px solid #e2e8f0',
                     padding: '1.5rem 1.25rem',
-                    display: 'flex',
+                    display: showRightSidebar ? 'flex' : 'none',
                     flexDirection: 'column',
                     gap: '1.25rem',
-                    overflowY: 'auto'
+                    overflowY: 'auto',
+                    ...(isMobileOrTablet && {
+                        position: 'absolute',
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                        zIndex: 1000,
+                        height: 'calc(100vh - 60px)',
+                        boxShadow: '-4px 0 16px rgba(0,0,0,0.1)'
+                    })
                 }}>
                     <h3 style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.75px', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>
                         Properties
