@@ -750,3 +750,22 @@ html {
   }
 }
 
+.editor-canvas-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  background-color: #f1f5f9;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .editor-canvas-container {
+    padding: 0.5rem !important;
+    gap: 1rem !important;
+  }
+}
+

@@ -98,9 +98,12 @@ export const DocumentEditor: React.FC = () => {
             if (!isNarrow) {
                 setShowLeftSidebar(true);
                 setShowRightSidebar(true);
+                setZoom(1.2);
             } else {
                 setShowLeftSidebar(false);
                 setShowRightSidebar(false);
+                const mobileZoom = Math.max(0.4, Math.min(1.0, (window.innerWidth - 24) / 612));
+                setZoom(Number(mobileZoom.toFixed(2)));
             }
         };
         handleResize();
@@ -878,7 +881,7 @@ export const DocumentEditor: React.FC = () => {
                 </div>
 
                 {/* Main Scrollable Canvas */}
-                <div style={{ flex: 1, overflowY: 'auto', padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2rem', backgroundColor: '#f1f5f9' }}>
+                <div className="editor-canvas-container">
                     {loadingPdf ? (
                         <div style={{ display: 'flex', minHeight: '50vh', alignItems: 'center', justifyContent: 'center' }}>
                             <div className="spinner"></div>
