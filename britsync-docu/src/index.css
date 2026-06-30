@@ -769,3 +769,25 @@ html {
   }
 }
 
+@media (max-width: 900px) {
+  .hidden-mobile {
+    display: none !important;
+  }
+  .editor-doc-title {
+    display: none !important;
+  }
+  .editor-top-bar {
+    padding: 0 0.5rem !important;
+    gap: 0.25rem !important;
+  }
+  .editor-header-left, .editor-header-middle, .editor-header-right {
+    gap: 0.25rem !important;
+  }
+  .editor-header-left button, 
+  .editor-header-middle button, 
+  .editor-header-right button {
+    padding: 0.35rem 0.5rem !important;
+    font-size: 0.7rem !important;
+  }
+}
+

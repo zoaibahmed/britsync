@@ -585,7 +585,9 @@ export const DocumentEditor: React.FC = () => {
         setSelectedFieldId(fieldId);
         if (fieldId) {
             setShowRightSidebar(true);
-            setShowLeftSidebar(false);
+            if (isMobileOrTablet) {
+                setShowLeftSidebar(false);
+            }
         }
     };
 
@@ -711,12 +713,12 @@ export const DocumentEditor: React.FC = () => {
                 top: 0,
                 zIndex: 100,
                 boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)'
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+            }} className="editor-top-bar">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }} className="editor-header-left">
                     <button className="btn btn-secondary" style={{ padding: '0.45rem 0.9rem' }} onClick={() => navigate('/documents')}>
                         <ArrowLeft size={16} /> Back
                     </button>
-                    <span style={{ fontWeight: 800, fontSize: '1rem', color: '#0f172a' }}>{doc?.document_name}</span>
+                    <span style={{ fontWeight: 800, fontSize: '1rem', color: '#0f172a' }} className="editor-doc-title">{doc?.document_name}</span>
                     <span style={{
                         fontSize: '0.7rem',
                         padding: '2px 8px',
@@ -730,9 +732,9 @@ export const DocumentEditor: React.FC = () => {
                 </div>
 
                 {/* Undo / Redo & Zoom Controls */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} className="editor-header-middle">
                     <button 
-                        className="btn btn-secondary" 
+                        className="btn btn-secondary hidden-mobile" 
                         style={{ padding: '0.4rem', minWidth: 'auto' }} 
                         onClick={handleUndo} 
                         disabled={historyIdx <= 0} 
@@ -741,7 +743,7 @@ export const DocumentEditor: React.FC = () => {
                         <Undo2 size={15} />
                     </button>
                     <button 
-                        className="btn btn-secondary" 
+                        className="btn btn-secondary hidden-mobile" 
                         style={{ padding: '0.4rem', minWidth: 'auto' }} 
                         onClick={handleRedo} 
                         disabled={historyIdx >= history.length - 1} 
@@ -749,18 +751,18 @@ export const DocumentEditor: React.FC = () => {
                     >
                         <Redo2 size={15} />
                     </button>
-                    <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 0.5rem' }} />
+                    <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 0.5rem' }} className="hidden-mobile" />
                     
-                    <button className="btn btn-secondary" style={{ padding: '0.4rem', minWidth: 'auto' }} onClick={() => setZoom(z => Math.max(0.6, z - 0.1))} title="Zoom Out">
+                    <button className="btn btn-secondary hidden-mobile" style={{ padding: '0.4rem', minWidth: 'auto' }} onClick={() => setZoom(z => Math.max(0.6, z - 0.1))} title="Zoom Out">
                         <ZoomOut size={15} />
                     </button>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, width: '48px', textAlign: 'center', color: '#475569' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, width: '48px', textAlign: 'center', color: '#475569' }} className="hidden-mobile">
                         {Math.round(zoom * 100)}%
                     </span>
-                    <button className="btn btn-secondary" style={{ padding: '0.4rem', minWidth: 'auto' }} onClick={() => setZoom(z => Math.min(2.0, z + 0.1))} title="Zoom In">
+                    <button className="btn btn-secondary hidden-mobile" style={{ padding: '0.4rem', minWidth: 'auto' }} onClick={() => setZoom(z => Math.min(2.0, z + 0.1))} title="Zoom In">
                         <ZoomIn size={15} />
                     </button>
-                    <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 0.5rem' }} />
+                    <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 0.5rem' }} className="hidden-mobile" />
                     <button 
                         className="btn btn-secondary" 
                         style={{
@@ -775,7 +777,9 @@ export const DocumentEditor: React.FC = () => {
                         }} 
                         onClick={() => {
                             setShowLeftSidebar(!showLeftSidebar);
-                            setShowRightSidebar(false);
+                            if (isMobileOrTablet) {
+                                setShowRightSidebar(false);
+                            }
                         }}
                     >
                         <PenTool size={13} /> Tools
@@ -794,23 +798,25 @@ export const DocumentEditor: React.FC = () => {
                         }} 
                         onClick={() => {
                             setShowRightSidebar(!showRightSidebar);
-                            setShowLeftSidebar(false);
+                            if (isMobileOrTablet) {
+                                setShowLeftSidebar(false);
+                            }
                         }}
                     >
                         <Users size={13} /> Signers
                     </button>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }} className="editor-header-right">
                     <button 
-                        className="btn btn-secondary" 
+                        className="btn btn-secondary hidden-mobile" 
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#7c3aed', borderColor: '#d8b4fe', background: '#faf5ff', fontWeight: 800 }} 
                         onClick={handleAutoPlaceFields} 
                         disabled={scanningPDF || loadingPdf}
                     >
                         <span>{scanningPDF ? 'Scanning...' : '✨ Smart Auto-Place'}</span>
                     </button>
-                    <button className="btn btn-secondary" onClick={handleSaveDraft} disabled={saving}>
+                    <button className="btn btn-secondary hidden-mobile" onClick={handleSaveDraft} disabled={saving}>
                         <Save size={16} /> Save Draft
                     </button>
                     <button className="btn btn-primary" onClick={handleContinue} disabled={saving}>
