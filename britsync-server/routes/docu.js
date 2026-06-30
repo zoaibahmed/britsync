@@ -3793,20 +3793,26 @@ router.post('/documents/:id/suggest-fields', checkFeatureGate('custom_branding')
                 h: Math.round(it.h)
             }));
 
+        const signersInfo = doc.recipients
+            .map(r => `${r.name} (${r.email}) [role: ${r.role}]`)
+            .join(', ');
+
         const systemPrompt = `You are an AI assistant designed to parse layouts of PDF documents for digital signing.
 You are given a list of text fragments and their viewport coordinates: (x, y) where x is the distance from the left edge and y is the distance from the top edge. The overall page dimensions are ${viewportWidth}x${viewportHeight}.
 
+The document signers/recipients are: ${signersInfo}.
+
 Analyze this layout spatially to identify logical signing fields. Specifically, locate where:
-1. Signatures (indicated by labels like "Signature", "Sign here", "Sign", "Signature of...", line indicators like "X ______")
-2. Full Names (indicated by labels like "Print Name", "Full Name", "Name")
-3. Dates (indicated by labels like "Date", "Dated", "Date signed")
+1. Signatures (indicated by labels like "Signature", "Sign here", "Sign", "Signature of...", line indicators like "X ______", or placed right above/next to the printed signer names: ${doc.recipients.map(r => r.name).join(', ')})
+2. Full Names (indicated by labels like "Print Name", "Full Name", "Name", or near the signer names)
+3. Dates (indicated by labels like "Date", "Dated", "Date signed", or standard date lines)
 4. Company names (indicated by labels like "Company", "Employer", "Title")
 
 For each identified field, return:
 - field_type: "user_signature" | "fullName" | "date" | "company"
 - label: A short label describing it
-- x_percent: The percentage (0-100) from the left edge of the page where the input box should start. Place it immediately below or next to the label text.
-- y_percent: The percentage (0-100) from the top edge of the page where the input box should start. Place it immediately below the label text (usually y_percent + 2.5).
+- x_percent: The percentage (0-100) from the left edge of the page where the input box should start. Place it immediately below or next to the label text or signature line.
+- y_percent: The percentage (0-100) from the top edge of the page where the input box should start. Place it immediately below the label text or signature line (usually y_percent + 2.5).
 - width_percent: Width of the field (approx 15-25%)
 - height_percent: Height of the field (approx 4-6%)
 
@@ -3826,7 +3832,7 @@ Return the result as a strict JSON object containing a "suggestions" array:
 Do NOT include any explanations, markdown code blocks, or preamble. Return ONLY valid JSON.`;
 
         const userPrompt = `Here are the text fragments on the page:
-${JSON.stringify(cleanItems.slice(0, 150))}`;
+${JSON.stringify(cleanItems.slice(0, 600))}`;
 
         let suggestions = [];
 
