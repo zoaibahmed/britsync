@@ -182,7 +182,38 @@ export const SendFlow: React.FC = () => {
     }
 
     return (
-        <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', padding: '3rem 2rem' }}>
+        <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', padding: '3rem 2rem' }} className="send-flow-container">
+            <style>{`
+                @media (max-width: 768px) {
+                    .send-flow-container {
+                        padding: 1.5rem 1rem !important;
+                    }
+                    .send-flow-card {
+                        padding: 1.25rem !important;
+                    }
+                    .send-recipient-inputs {
+                        flex-direction: column !important;
+                        align-items: stretch !important;
+                    }
+                    .send-recipient-inputs > div {
+                        flex: none !important;
+                        width: 100% !important;
+                    }
+                    .send-recipient-inputs > button {
+                        width: 100% !important;
+                        height: 44px !important;
+                        margin-top: 0.5rem !important;
+                    }
+                    .send-flow-actions {
+                        flex-direction: column-reverse !important;
+                        gap: 0.75rem !important;
+                    }
+                    .send-flow-actions > button {
+                        width: 100% !important;
+                        justify-content: center !important;
+                    }
+                }
+            `}</style>
             <div style={{ maxWidth: '850px', margin: '0 auto' }}>
                 {/* Back Link */}
                 <button className="btn btn-secondary" style={{ marginBottom: '2rem' }} onClick={() => navigate(`/documents/${id}/editor`)}>
@@ -194,7 +225,7 @@ export const SendFlow: React.FC = () => {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                     {/* Add Signers Card */}
-                    <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '2rem', boxShadow: 'var(--shadow-sm)' }}>
+                    <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '2rem', boxShadow: 'var(--shadow-sm)' }} className="send-flow-card">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <Users size={18} style={{ color: '#2563eb' }} /> Add Recipients
@@ -246,7 +277,7 @@ export const SendFlow: React.FC = () => {
 
                         {/* Add Form */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', borderTop: '1px solid #f1f5f9', paddingTop: '1.5rem' }}>
-                            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }} className="send-recipient-inputs">
                                 <div className="form-group" style={{ flex: 2, marginBottom: 0 }}>
                                     <label className="form-label">Full Name</label>
                                     <input
@@ -296,7 +327,7 @@ export const SendFlow: React.FC = () => {
                     </div>
 
                     {/* Email Message & Parameters Card */}
-                    <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '2rem', boxShadow: 'var(--shadow-sm)' }}>
+                    <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '2rem', boxShadow: 'var(--shadow-sm)' }} className="send-flow-card">
                         <h2 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <Mail size={18} style={{ color: '#2563eb' }} /> Email Dispatch details
                         </h2>
@@ -341,7 +372,7 @@ export const SendFlow: React.FC = () => {
                     </div>
 
                     {/* Action buttons */}
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }} className="send-flow-actions">
                         <button className="btn btn-secondary" style={{ padding: '0.75rem 2rem' }} onClick={() => navigate('/documents')}>
                             Cancel
                         </button>

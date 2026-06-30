@@ -703,3 +703,29 @@ html {
     padding: 0.5rem !important;
   }
 }
+
+/* Document Editor Responsive Drawer Overlay Overrides */
+@media (max-width: 1024px) {
+  .editor-workspace {
+    position: relative !important;
+  }
+  .editor-left-sidebar {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    z-index: 1000 !important;
+    height: 100% !important;
+    box-shadow: 4px 0 16px rgba(0,0,0,0.1) !important;
+  }
+  .editor-right-sidebar {
+    position: absolute !important;
+    right: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    z-index: 1000 !important;
+    height: 100% !important;
+    box-shadow: -4px 0 16px rgba(0,0,0,0.1) !important;
+  }
+}
+

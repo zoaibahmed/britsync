@@ -98,8 +98,12 @@ export const DocumentEditor: React.FC = () => {
             if (!isNarrow) {
                 setShowLeftSidebar(true);
                 setShowRightSidebar(true);
+            } else {
+                setShowLeftSidebar(false);
+                setShowRightSidebar(false);
             }
         };
+        handleResize();
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
@@ -809,7 +813,7 @@ export const DocumentEditor: React.FC = () => {
             </div>
 
             {/* Editor Workspace */}
-            <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
+            <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }} className="editor-workspace">
                 {/* Left Toolbelt */}
                 <div style={{
                     width: '240px',
@@ -828,7 +832,7 @@ export const DocumentEditor: React.FC = () => {
                         height: 'calc(100vh - 60px)',
                         boxShadow: '4px 0 16px rgba(0,0,0,0.1)'
                     })
-                }}>
+                }} className="editor-left-sidebar">
                     {['Basic', 'Recipient Info', 'Advanced'].map(cat => (
                         <div key={cat} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '1.25rem' }}>
                             <h3 style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.75px', paddingLeft: '0.4rem', marginBottom: '0.25rem' }}>
@@ -918,7 +922,7 @@ export const DocumentEditor: React.FC = () => {
                         height: 'calc(100vh - 60px)',
                         boxShadow: '-4px 0 16px rgba(0,0,0,0.1)'
                     })
-                }}>
+                }} className="editor-right-sidebar">
                     <h3 style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.75px', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>
                         Properties
                     </h3>
