@@ -248,7 +248,7 @@ export const Dashboard: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                 
                 {/* Bento Grid Top Row - Analytics & Checklist */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
                     
                     {/* SVG Analytics Graph - Double Curve Document Velocity */}
                     <div className="premium-card" style={{ display: 'flex', flexDirection: 'column', minHeight: '260px' }}>
@@ -386,7 +386,7 @@ export const Dashboard: React.FC = () => {
                 </div>
 
                 {/* Bento Grid Middle Row - Action items & Bottlenecks */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
                     
                     {/* Action Required: Awaiting Your Signature */}
                     <div className="premium-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', textAlign: 'left' }}>
@@ -492,7 +492,7 @@ export const Dashboard: React.FC = () => {
                 </div>
 
                 {/* Bento Grid Bottom Row - Recent list, Activity, Quick Send Templates */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
                     
                     {/* Recent Documents list */}
                     <div className="premium-card" style={{ flex: 2, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '340px' }}>

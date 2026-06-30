@@ -578,6 +578,14 @@ export const DocumentEditor: React.FC = () => {
         if (selectedFieldId === fieldId) setSelectedFieldId(null);
     };
 
+    const handleSelectField = (fieldId: string | null) => {
+        setSelectedFieldId(fieldId);
+        if (fieldId) {
+            setShowRightSidebar(true);
+            setShowLeftSidebar(false);
+        }
+    };
+
     const handleDuplicateField = (field: PlacedField) => {
         const duplicated: PlacedField = {
             ...field,
@@ -749,49 +757,45 @@ export const DocumentEditor: React.FC = () => {
                     <button className="btn btn-secondary" style={{ padding: '0.4rem', minWidth: 'auto' }} onClick={() => setZoom(z => Math.min(2.0, z + 0.1))} title="Zoom In">
                         <ZoomIn size={15} />
                     </button>
-                    {isMobileOrTablet && (
-                        <>
-                            <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 0.5rem' }} />
-                            <button 
-                                className="btn btn-secondary" 
-                                style={{
-                                    padding: '0.4rem 0.6rem',
-                                    fontSize: '0.75rem',
-                                    backgroundColor: showLeftSidebar ? '#eff6ff' : 'transparent',
-                                    color: showLeftSidebar ? '#2563eb' : '#475569',
-                                    border: showLeftSidebar ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px'
-                                }} 
-                                onClick={() => {
-                                    setShowLeftSidebar(!showLeftSidebar);
-                                    setShowRightSidebar(false);
-                                }}
-                            >
-                                <PenTool size={13} /> Tools
-                            </button>
-                            <button 
-                                className="btn btn-secondary" 
-                                style={{
-                                    padding: '0.4rem 0.6rem',
-                                    fontSize: '0.75rem',
-                                    backgroundColor: showRightSidebar ? '#eff6ff' : 'transparent',
-                                    color: showRightSidebar ? '#2563eb' : '#475569',
-                                    border: showRightSidebar ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px'
-                                }} 
-                                onClick={() => {
-                                    setShowRightSidebar(!showRightSidebar);
-                                    setShowLeftSidebar(false);
-                                }}
-                            >
-                                <Users size={13} /> Signers
-                            </button>
-                        </>
-                    )}
+                    <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 0.5rem' }} />
+                    <button 
+                        className="btn btn-secondary" 
+                        style={{
+                            padding: '0.4rem 0.6rem',
+                            fontSize: '0.75rem',
+                            backgroundColor: showLeftSidebar ? '#eff6ff' : 'transparent',
+                            color: showLeftSidebar ? '#2563eb' : '#475569',
+                            border: showLeftSidebar ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                        }} 
+                        onClick={() => {
+                            setShowLeftSidebar(!showLeftSidebar);
+                            setShowRightSidebar(false);
+                        }}
+                    >
+                        <PenTool size={13} /> Tools
+                    </button>
+                    <button 
+                        className="btn btn-secondary" 
+                        style={{
+                            padding: '0.4rem 0.6rem',
+                            fontSize: '0.75rem',
+                            backgroundColor: showRightSidebar ? '#eff6ff' : 'transparent',
+                            color: showRightSidebar ? '#2563eb' : '#475569',
+                            border: showRightSidebar ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                        }} 
+                        onClick={() => {
+                            setShowRightSidebar(!showRightSidebar);
+                            setShowLeftSidebar(false);
+                        }}
+                    >
+                        <Users size={13} /> Signers
+                    </button>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -895,7 +899,7 @@ export const DocumentEditor: React.FC = () => {
                                     onUpdateField={handleUpdateField}
                                     onDeleteField={handleDeleteField}
                                     selectedFieldId={selectedFieldId}
-                                    onSelectField={setSelectedFieldId}
+                                    onSelectField={handleSelectField}
                                     zoom={zoom}
                                 />
                             </div>

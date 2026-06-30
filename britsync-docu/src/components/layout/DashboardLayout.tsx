@@ -186,8 +186,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, titl
                 <header className="header">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <button 
-                            className="btn-icon" 
-                            style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'none' }}
+                            className="btn-icon mobile-menu-toggle" 
+                            style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
                             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                         >
                             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}

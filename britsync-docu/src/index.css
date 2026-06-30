@@ -704,7 +704,26 @@ html {
   }
 }
 
+.mobile-menu-toggle {
+  display: none !important;
+}
+
+@media (max-width: 1024px) {
+  .mobile-menu-toggle {
+    display: block !important;
+  }
+}
+
 /* Document Editor Responsive Drawer Overlay Overrides */
+@keyframes slideFromLeft {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+@keyframes slideFromRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
 @media (max-width: 1024px) {
   .editor-workspace {
     position: relative !important;
@@ -717,6 +736,7 @@ html {
     z-index: 1000 !important;
     height: 100% !important;
     box-shadow: 4px 0 16px rgba(0,0,0,0.1) !important;
+    animation: slideFromLeft 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
   .editor-right-sidebar {
     position: absolute !important;
@@ -726,6 +746,7 @@ html {
     z-index: 1000 !important;
     height: 100% !important;
     box-shadow: -4px 0 16px rgba(0,0,0,0.1) !important;
+    animation: slideFromRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 }
 
