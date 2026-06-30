@@ -33,6 +33,16 @@ const { compileFinalPdfNew, getFilePathFromUrl, calculateHash, generateAuditRepo
 const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
 
 // SMTP email config
+const getFrontendDocuUrl = () => {
+    let url = process.env.FRONTEND_URL || 'http://localhost:5173';
+    if (url.includes('britsync.co.uk') && !url.includes('britsync-docu.britsync.co.uk')) {
+        return 'https://britsync-docu.britsync.co.uk';
+    }
+    if (url.endsWith('/docu/')) url = url.slice(0, -6);
+    if (url.endsWith('/docu')) url = url.slice(0, -5);
+    return url;
+};
+
 const nodemailer = require('nodemailer');
 const emailTransporter = nodemailer.createTransport({
     service: 'gmail',
@@ -1946,7 +1956,7 @@ router.post('/documents/:id/send', requireCreateSendPermission, async (req, res)
             { $inc: { documents_sent: 1 } }
         );
 
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const frontendUrl = getFrontendDocuUrl();
         const sender = await DocuUser.findById(req.user.id);
 
         const signersToNotify = [];
@@ -1963,7 +1973,7 @@ router.post('/documents/:id/send', requireCreateSendPermission, async (req, res)
         }
 
         for (const recipientToNotify of signersToNotify) {
-            const signingLink = `${frontendUrl}/docu/public/sign/${recipientToNotify.secure_token}`;
+            const signingLink = `${frontendUrl}/public/sign/${recipientToNotify.secure_token}`;
             const emailHtml = `
               <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 30px; border: 1px solid #e0e0e0; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
                 <h2 style="color: #3b82f6; text-align: center; font-size: 24px; margin-bottom: 20px;">Signature Request</h2>
@@ -2016,8 +2026,8 @@ router.post('/documents/:id/resend', requireCreateSendPermission, async (req, re
 
         if (!activeSigner) return res.status(400).json({ message: 'No active recipient awaiting signature' });
 
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-        const signingLink = `${frontendUrl}/docu/public/sign/${activeSigner.secure_token}`;
+        const frontendUrl = getFrontendDocuUrl();
+        const signingLink = `${frontendUrl}/public/sign/${activeSigner.secure_token}`;
         
         const emailHtml = `
           <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 30px; border: 1px solid #e0e0e0; border-radius: 12px;">
@@ -2295,8 +2305,8 @@ router.post('/public/sign/:token/complete', async (req, res) => {
                 // Activate this signer so they can access their link
                 nextSigner.status = 'sent';
                 await doc.save();
-                const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-                const signingLink = `${frontendUrl}/docu/public/sign/${nextSigner.secure_token}`;
+                const frontendUrl = getFrontendDocuUrl();
+                const signingLink = `${frontendUrl}/public/sign/${nextSigner.secure_token}`;
                 
                 const emailHtml = `
                   <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 30px; border: 1px solid #e0e0e0; border-radius: 12px;">
@@ -2831,10 +2841,10 @@ router.post('/team/invite', requireAdminPermission, async (req, res) => {
         await member.save();
 
         // Send Email
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const frontendUrl = getFrontendDocuUrl();
         const actionUrl = isNewUser 
-            ? `${frontendUrl}/docu/signup?email=${encodeURIComponent(email)}`
-            : `${frontendUrl}/docu/login`;
+            ? `${frontendUrl}/signup?email=${encodeURIComponent(email)}`
+            : `${frontendUrl}/login`;
         const buttonText = isNewUser ? 'Register & Join Workspace' : 'Log In to Workspace';
 
         const emailHtml = `
@@ -3423,7 +3433,7 @@ router.post('/billing/create-checkout-session', authenticateDocuToken, async (re
                     });
 
                     return res.json({ 
-                        url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/docu/onboarding?checkout_success=true&simulated=true`,
+                        url: `${getFrontendDocuUrl()}/onboarding?checkout_success=true&simulated=true`,
                         simulated: true 
                     });
                 } else {
@@ -3454,8 +3464,8 @@ router.post('/billing/create-checkout-session', authenticateDocuToken, async (re
                 }],
                 mode: 'subscription',
                 billing_address_collection: 'required',
-                success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/docu/onboarding?checkout_success=true&session_id={CHECKOUT_SESSION_ID}`,
-                cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/docu/onboarding?canceled=true`,
+                success_url: `${getFrontendDocuUrl()}/onboarding?checkout_success=true&session_id={CHECKOUT_SESSION_ID}`,
+                cancel_url: `${getFrontendDocuUrl()}/onboarding?canceled=true`,
                 customer_email: req.user.email,
                 metadata: {
                     action: 'create_company',
@@ -3500,7 +3510,7 @@ router.post('/billing/create-checkout-session', authenticateDocuToken, async (re
                 );
 
                 return res.json({ 
-                    url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/docu/billing?success=true`,
+                    url: `${getFrontendDocuUrl()}/billing?success=true`,
                     simulated: true 
                 });
             } else {
@@ -3527,8 +3537,8 @@ router.post('/billing/create-checkout-session', authenticateDocuToken, async (re
             }],
             mode: 'subscription',
             billing_address_collection: 'required',
-            success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/docu/billing?success=true`,
-            cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/docu/billing?canceled=true`,
+            success_url: `${getFrontendDocuUrl()}/billing?success=true`,
+            cancel_url: `${getFrontendDocuUrl()}/billing?canceled=true`,
             client_reference_id: wsId.toString(),
             customer_email: req.user.email,
             metadata: { workspaceId: wsId.toString(), plan }
@@ -3557,7 +3567,7 @@ router.post('/billing/create-portal-session', authenticateDocuToken, async (req,
         const stripeSecret = process.env.STRIPE_SECRET_KEY;
         if (!stripeSecret || !stripe) {
             if (isDev) {
-                return res.json({ url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/docu/billing` });
+                return res.json({ url: `${getFrontendDocuUrl()}/billing` });
             } else {
                 return res.status(500).json({ message: 'Stripe integration is not configured on the production server.' });
             }
@@ -3565,7 +3575,7 @@ router.post('/billing/create-portal-session', authenticateDocuToken, async (req,
 
         const session = await stripe.billingPortal.sessions.create({
             customer: ws.stripe_customer_id,
-            return_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/docu/billing`
+            return_url: `${getFrontendDocuUrl()}/billing`
         });
 
         res.json({ url: session.url });
