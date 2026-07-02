@@ -601,25 +601,10 @@ export const LandingPage: React.FC = () => {
                             { title: 'Reusable Template Library', desc: 'Instantiate offer letters, invoices, and SLA agreements instantly with standard templates.', icon: <Cpu size={20} /> },
                             { title: 'Workspace Theme Branding', desc: 'Custom upload brand logos, headers, emails, and custom brand colors on signing interfaces.', icon: <Compass size={20} /> }
                         ].map((feat, idx) => (
-                            <div key={idx} style={{
-                                background: '#f8fafc',
-                                padding: '2rem 1.75rem',
-                                borderRadius: '16px',
-                                border: '1px solid #e2e8f0',
-                                textAlign: 'left',
-                                transition: 'all 0.3s ease',
-                                cursor: 'pointer'
-                            }}
-                            onMouseEnter={e => {
-                                e.currentTarget.style.transform = 'translateY(-5px)';
-                                e.currentTarget.style.boxShadow = '0 12px 20px -8px rgba(37,99,235,0.08)';
-                                e.currentTarget.style.borderColor = '#bfdbfe';
-                            }}
-                            onMouseLeave={e => {
-                                e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow = 'none';
-                                e.currentTarget.style.borderColor = '#e2e8f0';
-                            }}
+                            <div 
+                                key={idx} 
+                                className="premium-feature-card"
+                                style={{ textAlign: 'left' }}
                             >
                                 <div style={{ color: '#2563eb', marginBottom: '1.25rem', background: '#ffffff', border: '1px solid #e2e8f0', width: '42px', height: '42px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow-sm)' }}>
                                     {feat.icon}
@@ -640,15 +625,10 @@ export const LandingPage: React.FC = () => {
                     
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', textAlign: 'left' }}>
                         {workflowSteps.map((step, idx) => (
-                            <div key={idx} style={{
+                            <div key={idx} className="workflow-stage-card" style={{
                                 display: 'flex',
                                 gap: '2rem',
-                                background: 'white',
-                                border: '1px solid #e2e8f0',
-                                borderRadius: '16px',
-                                padding: '2rem',
-                                alignItems: 'center',
-                                boxShadow: 'var(--shadow-sm)'
+                                alignItems: 'center'
                             }}>
                                 <div style={{
                                     fontSize: '2rem',
@@ -829,16 +809,12 @@ export const LandingPage: React.FC = () => {
                             { name: 'Professional Plan', price: '19', desc: 'For growing freelancers and teams', features: ['Unlimited documents', 'Multiple recipients', 'Sequential signing order', 'Reusable templates', 'Priority support'], recommended: true },
                             { name: 'Enterprise Plan', price: '49', desc: 'For workspaces needing customization', features: ['Everything in Pro', 'Custom brand color & logo', 'Workspace role permissions', 'Bulk CSV sending', 'Dedicated API access'] }
                         ].map((plan, idx) => (
-                            <div key={idx} style={{
-                                background: 'white',
-                                border: plan.recommended ? '2px solid #2563eb' : '1px solid #e2e8f0',
-                                borderRadius: '18px',
+                            <div key={idx} className={plan.recommended ? "pricing-card-featured" : "pricing-card-premium"} style={{
                                 padding: '3.5rem 2.25rem',
                                 flex: 1,
                                 minWidth: '290px',
                                 maxWidth: '320px',
                                 textAlign: 'left',
-                                boxShadow: plan.recommended ? '0 25px 30px -8px rgba(37, 99, 235, 0.08)' : 'var(--shadow-sm)',
                                 position: 'relative'
                             }}>
                                 {plan.recommended && (

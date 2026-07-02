@@ -340,10 +340,17 @@ export const PublicSigning: React.FC = () => {
             const el = document.getElementById(`field-wrapper-${nextFieldId}`);
             if (el) {
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                // Flash red/blue border briefly
-                el.style.outline = '3px solid #f59e0b';
+                // Focus child input
+                const input = el.querySelector('input, textarea, select') as HTMLElement;
+                if (input) input.focus();
+
+                // Flash premium highlight border briefly
+                el.style.boxShadow = '0 0 15px #2563eb';
+                el.style.transform = 'scale(1.05)';
+                el.style.transition = 'all 0.3s ease';
                 setTimeout(() => {
-                    el.style.outline = 'none';
+                    el.style.boxShadow = 'none';
+                    el.style.transform = 'none';
                 }, 1500);
             }
         } else {
@@ -810,6 +817,7 @@ export const PublicSigning: React.FC = () => {
                                 onFileUploadBase64={handleFileUploadBase64}
                                 validationErrors={validationErrors}
                                 brandColor={brandColor}
+                                doc={doc}
                             />
                         </div>
                     ))
@@ -957,6 +965,52 @@ export const PublicSigning: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            {/* Sticky "Go Next" Floating Action Button */}
+            {remainingRequired.length > 0 && (
+                <button
+                    onClick={handleGoToNextRequired}
+                    style={{
+                        position: 'fixed',
+                        bottom: '24px',
+                        right: '24px',
+                        backgroundColor: '#2563eb',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '9999px',
+                        padding: '0.75rem 1.25rem',
+                        fontSize: '0.85rem',
+                        fontWeight: 800,
+                        boxShadow: '0 10px 25px -5px rgba(37, 99, 235, 0.4), 0 8px 10px -6px rgba(37, 99, 235, 0.4)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        zIndex: 9999,
+                        transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={e => {
+                        e.currentTarget.style.backgroundColor = '#1d4ed8';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={e => {
+                        e.currentTarget.style.backgroundColor = '#2563eb';
+                        e.currentTarget.style.transform = 'none';
+                    }}
+                >
+                    <span>👉 Go to Next Required</span>
+                    <span style={{
+                        background: 'white',
+                        color: '#2563eb',
+                        borderRadius: '9999px',
+                        padding: '2px 8px',
+                        fontSize: '0.7rem',
+                        fontWeight: 900
+                    }}>
+                        {remainingRequired.length}
+                    </span>
+                </button>
+            )}
         </div>
     );
 };
@@ -972,6 +1026,7 @@ interface SigningPageProps {
     onFileUploadBase64: (id: string, file: File) => void;
     validationErrors: string[];
     brandColor: string;
+    doc: any;
 }
 
 const SigningPageContainer: React.FC<SigningPageProps> = ({
@@ -983,7 +1038,8 @@ const SigningPageContainer: React.FC<SigningPageProps> = ({
     onOpenSignatureModal,
     onFileUploadBase64,
     validationErrors,
-    brandColor
+    brandColor,
+    doc
 }) => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
@@ -1068,6 +1124,11 @@ const SigningPageContainer: React.FC<SigningPageProps> = ({
                         field.assigned_recipient_id === String(recipient?._id) ||
                         field.assigned_recipient_id === recipient?.email ||
                         field.assigned_recipient_id === 'all';
+                    
+                    if (!isMyField && !doc?.show_other_signers_fields) {
+                        return null;
+                    }
+
                     const isError = validationErrors.includes(field._id);
                     
 

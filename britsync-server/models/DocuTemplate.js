@@ -9,7 +9,8 @@ const DocuTemplateSchema = new mongoose.Schema({
     file_url: { type: String, required: true },
     fields_json: { type: String, default: '[]' }, // JSON string array of pre-configured fields
     recipients_json: { type: String, default: '[]' }, // JSON string array of template roles (e.g. Signer 1, Signer 2)
-    default_message: { type: String, default: '' }
+    default_message: { type: String, default: '' },
+    show_other_signers_fields: { type: Boolean, default: false }
 }, {
     timestamps: true,
     collection: 'docu_templates'

@@ -68,6 +68,7 @@ const DocuDocumentNewSchema = new mongoose.Schema({
     source_type: { type: String, enum: ['upload', 'template'], default: 'upload' },
     template_id: { type: mongoose.Schema.Types.ObjectId, ref: 'DocuTemplate' },
     signing_order_enabled: { type: Boolean, default: false },
+    show_other_signers_fields: { type: Boolean, default: false },
     expires_at: { type: Date },
     sent_at: { type: Date },
     viewed_at: { type: Date },

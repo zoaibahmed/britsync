@@ -10,6 +10,8 @@ interface Recipient {
     email: string;
     role: 'signer' | 'viewer' | 'cc';
     signing_order: number;
+    auth_method?: 'none' | 'passcode';
+    passcode?: string;
 }
 
 export const SendFlow: React.FC = () => {
@@ -33,6 +35,8 @@ export const SendFlow: React.FC = () => {
     const [newName, setNewName] = useState('');
     const [newEmail, setNewEmail] = useState('');
     const [newRole, setNewRole] = useState<'signer' | 'viewer' | 'cc'>('signer');
+    const [newAuthMethod, setNewAuthMethod] = useState<'none' | 'passcode'>('none');
+    const [newPasscode, setNewPasscode] = useState('');
     const [signingOrderEnabled, setSigningOrderEnabled] = useState(false);
     
     const [loading, setLoading] = useState(true);
@@ -103,7 +107,9 @@ export const SendFlow: React.FC = () => {
             name: newName,
             email: newEmail,
             role: newRole,
-            signing_order: nextOrder
+            signing_order: nextOrder,
+            auth_method: newAuthMethod,
+            passcode: newAuthMethod === 'passcode' ? newPasscode : undefined
         };
 
         setRecipients(prev => [...prev, newRec]);
@@ -126,6 +132,8 @@ export const SendFlow: React.FC = () => {
         setNewName('');
         setNewEmail('');
         setNewRole('signer');
+        setNewAuthMethod('none');
+        setNewPasscode('');
         setSaveToContacts(false);
     };
 
@@ -266,6 +274,23 @@ export const SendFlow: React.FC = () => {
                                                 marginLeft: '0.75rem',
                                                 textTransform: 'uppercase'
                                             }}>{rec.role === 'signer' ? 'signer' : rec.role === 'viewer' ? 'viewer' : 'cc'}</span>
+                                            {rec.auth_method === 'passcode' && (
+                                                <span style={{
+                                                    fontSize: '0.65rem',
+                                                    fontWeight: 800,
+                                                    background: '#fee2e2',
+                                                    color: '#ef4444',
+                                                    padding: '2px 8px',
+                                                    borderRadius: '999px',
+                                                    marginLeft: '0.5rem',
+                                                    textTransform: 'uppercase',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '2px'
+                                                }}>
+                                                    🔒 Passcode
+                                                </span>
+                                            )}
                                         </div>
                                         <button className="btn btn-danger" style={{ padding: '0.3rem 0.5rem' }} onClick={() => handleRemoveRecipient(idx)}>
                                             <Trash2 size={14} />
@@ -314,6 +339,51 @@ export const SendFlow: React.FC = () => {
                                     <Plus size={16} /> Add Recipient
                                 </button>
                             </div>
+
+                            {/* Security / Verification Settings for Recipient */}
+                            {newRole === 'signer' && (
+                                <div style={{ 
+                                    display: 'flex', 
+                                    gap: '1rem', 
+                                    background: '#f8fafc', 
+                                    border: '1px solid #e2e8f0', 
+                                    borderRadius: '8px', 
+                                    padding: '1rem', 
+                                    alignItems: 'center', 
+                                    flexWrap: 'wrap',
+                                    marginTop: '0.25rem' 
+                                }}>
+                                    <div style={{ flex: 1.5, minWidth: '180px' }}>
+                                        <Select
+                                            label="Signer Access Verification"
+                                            value={newAuthMethod}
+                                            onChange={(val: any) => {
+                                                setNewAuthMethod(val);
+                                                if (val === 'none') setNewPasscode('');
+                                            }}
+                                            options={[
+                                                { value: 'none', label: 'None (Email link only)' },
+                                                { value: 'passcode', label: 'Access Passcode (Recommended)' }
+                                            ]}
+                                        />
+                                    </div>
+                                    {newAuthMethod === 'passcode' && (
+                                        <div className="form-group" style={{ flex: 2, minWidth: '200px', marginBottom: 0 }}>
+                                            <label className="form-label">Set Passcode</label>
+                                            <input
+                                                type="text"
+                                                className="form-input"
+                                                placeholder="Enter secure passcode..."
+                                                value={newPasscode}
+                                                onChange={(e) => setNewPasscode(e.target.value)}
+                                            />
+                                            <span style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '2px', display: 'block' }}>
+                                                Signer must enter this passcode before they can view and sign the document.
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 600, color: '#64748b', cursor: 'pointer', userSelect: 'none', width: 'fit-content' }}>
                                 <input

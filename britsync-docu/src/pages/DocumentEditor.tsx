@@ -4,7 +4,7 @@ import { apiCall } from '../utils/api';
 import { 
     ArrowLeft, Save, ArrowRight, Trash2, HelpCircle, Type, PenTool, 
     CheckSquare, Calendar, ChevronDown, Award, Undo2, Redo2, 
-    ZoomIn, ZoomOut, Copy, FileUp, Info, Users
+    ZoomIn, ZoomOut, Copy, FileUp, Info, Users, Layers
 } from 'lucide-react';
 import { Select } from '../components/ui/Select';
 
@@ -72,6 +72,7 @@ export const DocumentEditor: React.FC = () => {
     const [zoom, setZoom] = useState<number>(1.2);
     const [saving, setSaving] = useState(false);
     const [loadingPdf, setLoadingPdf] = useState(true);
+    const [showOtherSignersFields, setShowOtherSignersFields] = useState<boolean>(false);
     
     // Quick Add Signer states
     const [newSignerName, setNewSignerName] = useState('');
@@ -374,6 +375,7 @@ export const DocumentEditor: React.FC = () => {
                 const loadedFields = docData.fields || [];
                 setFields(loadedFields);
                 setRecipients(docData.recipients || []);
+                setShowOtherSignersFields(docData.show_other_signers_fields || false);
                 
                 // Initialize history
                 setHistory([loadedFields]);
@@ -438,7 +440,8 @@ export const DocumentEditor: React.FC = () => {
                         fields: fields.map(f => {
                             const { _id, ...rest } = f;
                             return _id.startsWith('temp-') ? rest : f;
-                        })
+                        }),
+                        show_other_signers_fields: showOtherSignersFields
                     }
                 });
                 setAutosaveStatus('saved');
@@ -449,7 +452,7 @@ export const DocumentEditor: React.FC = () => {
         }, 8000);
 
         return () => clearTimeout(timer);
-    }, [fields, autosaveStatus, id]);
+    }, [fields, autosaveStatus, id, showOtherSignersFields]);
 
     const handleSaveDraft = async () => {
         setSaving(true);
@@ -461,7 +464,8 @@ export const DocumentEditor: React.FC = () => {
                     fields: fields.map(f => {
                         const { _id, ...rest } = f;
                         return _id.startsWith('temp-') ? rest : f;
-                    })
+                    }),
+                    show_other_signers_fields: showOtherSignersFields
                 }
             });
             setAutosaveStatus('saved');
@@ -470,6 +474,31 @@ export const DocumentEditor: React.FC = () => {
             console.error('Save failed:', err);
             alert('Failed to save document config.');
             setAutosaveStatus('unsaved');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleSaveAsTemplate = async () => {
+        setSaving(true);
+        try {
+            const cleanFields = fields.map(f => {
+                const { _id, ...rest } = f;
+                return _id.startsWith('temp-') ? rest : f;
+            });
+            await apiCall(`documents/${id}`, {
+                method: 'PATCH',
+                body: { fields: cleanFields, show_other_signers_fields: showOtherSignersFields }
+            });
+
+            const template = await apiCall(`documents/${id}/save-as-template`, {
+                method: 'POST'
+            });
+            alert(`"${template.template_name}" successfully saved to your template library!`);
+            navigate('/templates');
+        } catch (err: any) {
+            console.error(err);
+            alert(err.message || 'Failed to save document as template.');
         } finally {
             setSaving(false);
         }
@@ -492,7 +521,10 @@ export const DocumentEditor: React.FC = () => {
 
             await apiCall(`documents/${id}`, {
                 method: 'PATCH',
-                body: { fields: cleanFields }
+                body: { 
+                    fields: cleanFields,
+                    show_other_signers_fields: showOtherSignersFields
+                }
             });
             navigate(`/documents/${id}/send`);
         } catch (err) {
@@ -816,6 +848,14 @@ export const DocumentEditor: React.FC = () => {
                     >
                         <span>{scanningPDF ? 'Scanning...' : '✨ Smart Auto-Place'}</span>
                     </button>
+                    <button 
+                        className="btn btn-secondary hidden-mobile" 
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#0369a1', borderColor: '#bae6fd', background: '#f0f9ff', fontWeight: 700 }} 
+                        onClick={handleSaveAsTemplate} 
+                        disabled={saving}
+                    >
+                        <Layers size={15} /> Save as Template
+                    </button>
                     <button className="btn btn-secondary hidden-mobile" onClick={handleSaveDraft} disabled={saving}>
                         <Save size={16} /> Save Draft
                     </button>
@@ -881,6 +921,24 @@ export const DocumentEditor: React.FC = () => {
                         </div>
                     ))}
                     
+                    <div style={{ marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1.25rem', marginBottom: '1.25rem' }}>
+                        <h3 style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.75px', paddingLeft: '0.4rem', marginBottom: '0.5rem' }}>
+                            Settings
+                        </h3>
+                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', paddingLeft: '0.4rem', fontSize: '0.75rem', color: '#475569', userSelect: 'none' }}>
+                            <input 
+                                type="checkbox" 
+                                checked={showOtherSignersFields} 
+                                onChange={(e) => {
+                                    setShowOtherSignersFields(e.target.checked);
+                                    setAutosaveStatus('unsaved');
+                                }}
+                                style={{ marginTop: '2px' }}
+                            />
+                            <span>Show other signers' fields as read-only</span>
+                        </label>
+                    </div>
+
                     <div style={{ marginTop: 'auto', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.75rem', color: '#64748b', lineHeight: 1.5 }}>
                         💡 <strong>Guide</strong>: Select a tool, then click anywhere on the document canvas to drop a boundary box. Drag edge corners to resize.
                     </div>

@@ -1747,12 +1747,22 @@ router.patch('/documents/:id', requireCreateSendPermission, async (req, res) => 
         if (!doc) return res.status(404).json({ message: 'Document not found' });
         if (doc.status === 'completed') return res.status(400).json({ message: 'Completed documents cannot be modified' });
 
-        const { fields, document_name, expires_at, recipients, signing_order_enabled } = req.body;
+        const { fields, document_name, expires_at, recipients, signing_order_enabled, show_other_signers_fields } = req.body;
         if (fields) doc.fields = fields;
         if (document_name) doc.document_name = document_name;
         if (expires_at) doc.expires_at = new Date(expires_at);
-        if (recipients) doc.recipients = recipients;
+        if (recipients && Array.isArray(recipients)) {
+            const crypto = require('crypto');
+            doc.recipients = recipients.map(r => {
+                const recObj = { ...r };
+                if (r.auth_method === 'passcode' && r.passcode) {
+                    recObj.passcode_hash = crypto.createHash('sha256').update(r.passcode).digest('hex');
+                }
+                return recObj;
+            });
+        }
         if (signing_order_enabled !== undefined) doc.signing_order_enabled = signing_order_enabled;
+        if (show_other_signers_fields !== undefined) doc.show_other_signers_fields = show_other_signers_fields;
 
         const saved = await doc.save();
         await logAuditEvent({
@@ -2537,7 +2547,7 @@ router.get('/templates', authenticateDocuToken, async (req, res) => {
 
 router.post('/templates', requireCreateSendPermission, async (req, res) => {
     try {
-        const { template_name, description, category, file_url, fields_json, recipients_json, default_message } = req.body;
+        const { template_name, description, category, file_url, fields_json, recipients_json, default_message, show_other_signers_fields } = req.body;
         const temp = new DocuTemplate({
             workspace_id: req.user.workspaceId,
             owner_id: req.user.id,
@@ -2547,7 +2557,8 @@ router.post('/templates', requireCreateSendPermission, async (req, res) => {
             file_url,
             fields_json: fields_json || '[]',
             recipients_json: recipients_json || '[]',
-            default_message
+            default_message,
+            show_other_signers_fields: show_other_signers_fields || false
         });
 
         const saved = await temp.save();
@@ -2572,13 +2583,14 @@ router.patch('/templates/:id', requireCreateSendPermission, async (req, res) => 
         const t = await DocuTemplate.findOne({ _id: req.params.id, workspace_id: req.user.workspaceId });
         if (!t) return res.status(404).json({ message: 'Template not found' });
 
-        const { template_name, description, category, fields_json, recipients_json, default_message } = req.body;
+        const { template_name, description, category, fields_json, recipients_json, default_message, show_other_signers_fields } = req.body;
         if (template_name) t.template_name = template_name;
         if (description) t.description = description;
         if (category) t.category = category;
         if (fields_json) t.fields_json = fields_json;
         if (recipients_json) t.recipients_json = recipients_json;
         if (default_message) t.default_message = default_message;
+        if (show_other_signers_fields !== undefined) t.show_other_signers_fields = show_other_signers_fields;
 
         const saved = await t.save();
         res.json(saved);
@@ -2618,6 +2630,7 @@ router.post('/templates/:id/use', requireCreateSendPermission, async (req, res) 
             status: 'draft',
             source_type: 'template',
             template_id: t._id,
+            show_other_signers_fields: t.show_other_signers_fields || false,
             fields: JSON.parse(t.fields_json || '[]').map(f => {
                 delete f._id;
                 f.value = '';
@@ -2681,7 +2694,8 @@ router.post('/documents/:id/save-as-template', requireCreateSendPermission, asyn
                 role: r.role,
                 signing_order: r.signing_order
             }))),
-            default_message: ''
+            default_message: '',
+            show_other_signers_fields: doc.show_other_signers_fields || false
         });
 
         const saved = await t.save();
